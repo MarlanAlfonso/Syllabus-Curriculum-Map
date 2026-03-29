@@ -1,4 +1,4 @@
-# Contributing to SCM Knowledge Map
+S# Contributing to SCM Knowledge Map
 
 ## How to Set Up Locally
 Follow the setup steps in README.md exactly.
