@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AddCourseModal from '../components/AddCourseModal';
 import EditCourseModal from '../components/EditCourseModal';
+import SoftDisableConfirmDialog from '../components/SoftDisableConfirmDialog';
 import { getCourses } from '../services/courseService';
 
 export default function CourseListPage() {
@@ -8,6 +9,7 @@ export default function CourseListPage() {
   const [loading, setLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
+  const [disablingCourse, setDisablingCourse] = useState(null);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -33,6 +35,12 @@ export default function CourseListPage() {
 
   // Refresh courses after update
   const handleCourseUpdated = () => {
+    fetchCourses();
+  };
+
+  // Refresh courses after disable
+  const handleCourseDisabled = () => {
+    setDisablingCourse(null);
     fetchCourses();
   };
 
@@ -80,12 +88,20 @@ export default function CourseListPage() {
                       : 'None'}
                   </td>
                   <td>
-                    <button
-                      className="btn-edit"
-                      onClick={() => setEditingCourse(course)}
-                    >
-                      Edit
-                    </button>
+                    <div className="action-buttons">
+                      <button
+                        className="btn-edit"
+                        onClick={() => setEditingCourse(course)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn-disable"
+                        onClick={() => setDisablingCourse(course)}
+                      >
+                        Disable
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -109,6 +125,15 @@ export default function CourseListPage() {
         onCourseUpdated={handleCourseUpdated}
         course={editingCourse}
         allCourses={courses}
+      />
+
+      {/* Soft Disable Confirmation Dialog */}
+      <SoftDisableConfirmDialog
+        isOpen={disablingCourse !== null}
+        onClose={() => setDisablingCourse(null)}
+        onDisabled={handleCourseDisabled}
+        courseId={disablingCourse?.id}
+        courseCode={disablingCourse?.courseCode}
       />
     </div>
   );

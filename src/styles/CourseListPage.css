@@ -92,3 +92,24 @@
   text-align: center;
   color: #6b7280;
 }
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-disable {
+  padding: 6px 12px;
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.btn-disable:hover {
+  background-color: #fecaca;
+  border-color: #dc2626;
+}
