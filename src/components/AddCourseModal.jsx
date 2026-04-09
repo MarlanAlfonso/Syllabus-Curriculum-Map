@@ -221,8 +221,8 @@ export default function AddCourseModal({ isOpen, onClose, onCourseAdded, allCour
                 value={formData.semester}
                 onChange={handleInputChange}
               >
-                <option value="1st">1st Semester</option>
-                <option value="2nd">2nd Semester</option>
+                <option value="1">1st Semester</option>
+                <option value="2">2nd Semester</option>
                 <option value="Summer">Summer</option>
               </select>
             </div>
