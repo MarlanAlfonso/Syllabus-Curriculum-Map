@@ -1,0 +1,134 @@
+/* Dialog Overlay */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1001;
+}
+
+/* Dialog Box */
+.dialog-box {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 420px;
+  width: 90%;
+  padding: 32px;
+  text-align: center;
+}
+
+/* Icon */
+.dialog-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.dialog-icon.warning {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.dialog-icon.danger {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.dialog-icon.success {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+/* Title & Message */
+.dialog-title {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.dialog-message {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.dialog-subtitle {
+  margin: 0 0 20px 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.dialog-message strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Error Message */
+.error-message {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  border-left: 4px solid #dc2626;
+}
+
+/* Dialog Actions */
+.dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.btn-cancel,
+.btn-confirm-danger {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel {
+  background-color: #f3f4f6;
+  color: #374151;
+  min-width: 110px;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background-color: #e5e7eb;
+}
+
+.btn-confirm-danger {
+  background-color: #dc2626;
+  color: white;
+  min-width: 150px;
+}
+
+.btn-confirm-danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.btn-cancel:disabled,
+.btn-confirm-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

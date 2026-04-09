@@ -1,113 +1,140 @@
-import { useEffect, useState } from "react";
-import { getCourses } from "../services/courseService";
+import React, { useState, useEffect } from 'react';
+import AddCourseModal from '../components/AddCourseModal';
+import EditCourseModal from '../components/EditCourseModal';
+import SoftDisableConfirmDialog from '../components/SoftDisableConfirmDialog';
+import { getCourses } from '../services/courseService';
 
 export default function CourseListPage() {
-
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [disablingCourse, setDisablingCourse] = useState(null);
 
+  // Fetch courses on mount
   useEffect(() => {
-    async function fetchCourses() {
-      try {
-        const data = await getCourses();
-        setCourses(data);
-      } catch (err) {
-        setError("Failed to load courses.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchCourses();
   }, []);
 
-  function handleEdit(course) {
-    console.log("Edit clicked", course);
-  }
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const data = await getCourses();
+      setCourses(data);
+    } catch (err) {
+      console.error('Failed to fetch courses:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  function handleDisable(courseId) {
-    console.log("Disable clicked", courseId);
-  }
+  // Refresh courses after add
+  const handleCourseAdded = () => {
+    fetchCourses();
+  };
 
-  function handleAddCourse() {
-    console.log("Add course clicked");
-  }
+  // Refresh courses after update
+  const handleCourseUpdated = () => {
+    fetchCourses();
+  };
 
-  if (loading) {
-    return <p>Loading courses...</p>;
-  }
+  // Refresh courses after disable
+  const handleCourseDisabled = () => {
+    setDisablingCourse(null);
+    fetchCourses();
+  };
 
-  if (error) {
-    return <p>{error}</p>;
-  }
+  if (loading) return <div className="loading">Loading courses...</div>;
 
   return (
-    <div className="p-6">
-
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold">Course List</h1>
-
+    <div className="course-list-page">
+      <div className="page-header">
+        <h1>Course Management</h1>
         <button
-          onClick={handleAddCourse}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="btn-add-course"
+          onClick={() => setIsAddOpen(true)}
         >
-          Add Course
+          + Add New Course
         </button>
       </div>
 
-      {courses.length === 0 ? (
-        <p>No courses yet — add your first course.</p>
-      ) : (
-        <table className="min-w-full border border-gray-300">
-
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border p-2">Course Code</th>
-              <th className="border p-2">Course Title</th>
-              <th className="border p-2">Units</th>
-              <th className="border p-2">Year Level</th>
-              <th className="border p-2">Semester</th>
-              <th className="border p-2">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {courses.map((course) => (
-              <tr key={course.id}>
-
-                <td className="border p-2">{course.courseCode}</td>
-                <td className="border p-2">{course.courseTitle}</td>
-                <td className="border p-2">{course.units}</td>
-                <td className="border p-2">{course.yearLevel}</td>
-                <td className="border p-2">{course.semester}</td>
-
-                <td className="border p-2 space-x-2">
-
-                  <button
-                    onClick={() => handleEdit(course)}
-                    className="bg-green-500 text-white px-3 py-1 rounded"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => handleDisable(course.id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded"
-                  >
-                    Disable
-                  </button>
-
-                </td>
-
+      <div className="courses-table-container">
+        {courses.length === 0 ? (
+          <p className="empty-state">No courses yet. Click "Add New Course" to create one.</p>
+        ) : (
+          <table className="courses-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Title</th>
+                <th>Units</th>
+                <th>Year</th>
+                <th>Semester</th>
+                <th>Prerequisites</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
+            </thead>
+            <tbody>
+              {courses.map(course => (
+                <tr key={course.id}>
+                  <td>{course.courseCode}</td>
+                  <td>{course.courseTitle}</td>
+                  <td>{course.units}</td>
+                  <td>Year {course.yearLevel}</td>
+                  <td>{course.semester}</td>
+                  <td>
+                    {course.prerequisites && course.prerequisites.length > 0
+                      ? course.prerequisites.join(', ')
+                      : 'None'}
+                  </td>
+                  <td>
+                    <div className="action-buttons">
+                      <button
+                        className="btn-edit"
+                        onClick={() => setEditingCourse(course)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn-disable"
+                        onClick={() => setDisablingCourse(course)}
+                      >
+                        Disable
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-        </table>
-      )}
+      {/* Add Course Modal */}
+      <AddCourseModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onCourseAdded={handleCourseAdded}
+        allCourses={courses}
+      />
 
+      {/* Edit Course Modal */}
+      <EditCourseModal
+        isOpen={editingCourse !== null}
+        onClose={() => setEditingCourse(null)}
+        onCourseUpdated={handleCourseUpdated}
+        course={editingCourse}
+        allCourses={courses}
+      />
+
+      {/* Soft Disable Confirmation Dialog */}
+      <SoftDisableConfirmDialog
+        isOpen={disablingCourse !== null}
+        onClose={() => setDisablingCourse(null)}
+        onDisabled={handleCourseDisabled}
+        courseId={disablingCourse?.id}
+        courseCode={disablingCourse?.courseCode}
+      />
     </div>
   );
 }

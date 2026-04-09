@@ -1,4 +1,4 @@
-# Sprint 1 Log
+# Sprint [N] Log
 
 **Sprint dates:** Mar 20 - Apr 3
 **Scrum Master:** [Your Name]
