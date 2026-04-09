@@ -27,18 +27,36 @@
 ## PR Summary
 | PR Title | Author | Merged? |
 |---|---|---|
-| feat: base scaffold | @dev_lead | Yes |
-| feat: firebase-setup | @backend_dev | Yes |
-| docs: wireframes-v1 | @designer | Yes |
+| chore: initialize repo, branch protection, and Kanban board | Alfonso | Yes |
+| chore: initialize Firebase project and share env config | Alfonso | Yes |
+| Feat/project scaffold | Hernandez | Yes |
+| Update README with project details and setup instructions | Florendo | Yes |
+| Docs/readme contributing | Florendo | Yes |
+| docs/km-framework  | Alfonso | Yes |
+| feat: initialize Firebase JS SDK and Firestore client | Hernandez | Yes|
+| Feat/routing skeleton | Hernandez | Yes |
+| feat: seed 10 sample course documents into Firestore | Hernandez | Yes |
+| test: configure Vitest and React Testing Library with passing smoke test | Florendo | Yes |
+| docs: create sprint logs directory and finalize sprint 1 log | Florendo | Yes |
+| docs: add wireframes and KM annotations for all 4 main screens | Militar | Yes |
+| feat: build AppShell layout with Navbar and Sidebar skeleton | Militar | Yes |
+| docs: Final Sprint 1 Log and Template | Florendo | Yes |
+
+| Name | Total Number of PRs |
+|---|---|
+| Alfonso, Marlan | 3 |
+| Florendo, Angel | 5 |
+| Hernandez, Janice | 4 |
+| Militar, Angela | 2 |
 
 ---
 
 ## Sprint Gate Status
-- [x] Vite + React scaffold runs from a clean clone
-- [x] Firebase project initialized and .env.example shared
-- [x] 10 course documents visible in Firestore
-- [x] 4 wireframes committed to /docs/wireframes/ with KM annotations
-- [x] All Sprint 1 PRs merged to dev before EOD Apr 3
+- [✓] Vite + React scaffold runs from a clean clone
+- [✓] Firebase project initialized and .env.example shared
+- [✓] 10 course documents visible in Firestore
+- [✓] 4 wireframes committed to /docs/wireframes/ with KM annotations
+- [✓] All Sprint 1 PRs merged to dev before EOD Apr 3
 
 ---
 
