@@ -59,3 +59,16 @@
 
 ## TC-010: Firestore state persistence on refresh
 **Status:** PASS (Data remains consistent after browser refresh)
+
+TC #,Test Case Description,Actual Result,Status
+TC-001,Add course with all fields,"Created ""CS202: Data Structures"". Course appeared in table. Firestore doc verified with isActive: true.",✅ PASS
+TC-002,Missing courseCode,"System displayed ""Course Code is required"" below the input. Save button remained inactive. No Firestore write.",✅ PASS
+TC-003,Edit existing course,"Changed ""Intro to Programming"" to ""Advanced Programming"". Table and Firestore updated successfully.",✅ PASS
+TC-004,Add prerequisite,"Added ""CS101"" to ""CS201"". Firestore prerequisites array now contains [""CS101""].",✅ PASS
+TC-005,Circular prerequisite,"Attempted to link CS101 back to CS201. UI blocked the update with a ""Circular Dependency Detected"" warning.",✅ PASS
+TC-006,Soft-disable (MANDATORY),"Clicked Disable on CS101. Disappeared from UI. Checked Firestore: document still exists, isActive is now false.",✅ PASS 🔒
+TC-007,Verify hidden state,"Manually set ""MATH11"" to isActive: false in console. Refreshed page; MATH11 is no longer visible in list.",✅ PASS
+TC-008,No hard-delete audit,"Ran grep -r ""deleteDoc"" src/services/. Terminal returned zero results. No hard deletion code exists.",✅ PASS 🔒
+TC-009,Filter by year level,UI does not yet have a Year Level dropdown selector.,⚠️ DEFERRED
+TC-010,Duplicate courseCode,"Attempted to add another ""CS101"". System returned ""Course Code already exists"" error.",✅ PASS
+
