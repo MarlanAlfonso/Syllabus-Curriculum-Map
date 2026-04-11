@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { disableCourse } from '../services/courseService';
-import '../styles/ConfirmDialog.css';
 
 export default function SoftDisableConfirmDialog({
   isOpen,
@@ -14,22 +13,14 @@ export default function SoftDisableConfirmDialog({
 
   const handleConfirmDisable = async () => {
     if (!courseId) return;
-
     setLoading(true);
     setError('');
-
     try {
-      // Call disableCourse — this sets isActive: false
       await disableCourse(courseId);
-      
-      // Success: notify parent to refresh the list
       onDisabled();
-      
-      // Close dialog
       onClose();
     } catch (err) {
       setError(`Failed to disable course: ${err.message}`);
-      console.error('Disable course error:', err);
       setLoading(false);
     }
   };
@@ -42,34 +33,47 @@ export default function SoftDisableConfirmDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="dialog-overlay" onClick={handleCancel}>
-      <div className="dialog-box" onClick={e => e.stopPropagation()}>
-        <div className="dialog-icon warning">⚠</div>
-        
-        <h3 className="dialog-title">Disable Course?</h3>
-        
-        <p className="dialog-message">
-          Are you sure you want to remove <strong>{courseCode}</strong> from the curriculum map?
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div
+        className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Warning Icon & Title */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-3xl">⚠️</span>
+          <h3 className="text-xl font-bold text-gray-800">Disable Course?</h3>
+        </div>
+
+        {/* Message */}
+        <p className="text-gray-600 text-sm mb-2">
+          Are you sure you want to disable{' '}
+          <span className="font-semibold text-gray-900">{courseCode}</span>{' '}
+          from the curriculum map?
         </p>
-        
-        <p className="dialog-subtitle">
+        <p className="text-gray-400 text-xs mb-5">
           This action can be undone by an administrator.
         </p>
 
-        {error && <div className="error-message">{error}</div>}
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-300 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
 
-        <div className="dialog-actions">
+        {/* Action Buttons */}
+        <div className="flex gap-3">
           <button
             onClick={handleCancel}
-            className="btn-cancel"
             disabled={loading}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition duration-150 min-h-[44px] disabled:opacity-60"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirmDisable}
-            className="btn-confirm-danger"
             disabled={loading}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition duration-150 min-h-[44px] disabled:opacity-60"
           >
             {loading ? 'Disabling...' : 'Confirm Disable'}
           </button>
