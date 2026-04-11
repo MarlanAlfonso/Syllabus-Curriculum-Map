@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { updateCourse } from '../services/courseService';
-import '../styles/Modal.css';
 
 export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, course, allCourses }) {
   const [formData, setFormData] = useState({
@@ -17,7 +16,6 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Pre-fill form when course prop changes
   useEffect(() => {
     if (course) {
       setFormData({
@@ -34,26 +32,17 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
     }
   }, [course, isOpen]);
 
-  // Handle text/number input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
   };
 
-  // Handle multi-select for prerequisites
   const handlePrerequisiteChange = (e) => {
     const selected = Array.from(e.target.selectedOptions).map(option => option.value);
-    setFormData(prev => ({
-      ...prev,
-      prerequisites: selected
-    }));
+    setFormData(prev => ({ ...prev, prerequisites: selected }));
   };
 
-  // Handle skills tag input (comma-separated)
   const handleSkillsChange = (e) => {
     const value = e.target.value;
     setFormData(prev => ({
@@ -62,32 +51,16 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
     }));
   };
 
-  // Validate form data
   const validateForm = () => {
     const { courseCode, courseTitle, units } = formData;
-    
-    if (!courseCode.trim()) {
-      setError('Course Code is required');
-      return false;
-    }
-    
-    if (!courseTitle.trim()) {
-      setError('Course Title is required');
-      return false;
-    }
-    
-    if (!units || units <= 0) {
-      setError('Units must be a positive number');
-      return false;
-    }
-    
+    if (!courseCode.trim()) { setError('Course Code is required'); return false; }
+    if (!courseTitle.trim()) { setError('Course Title is required'); return false; }
+    if (!units || units <= 0) { setError('Units must be a positive number'); return false; }
     return true;
   };
 
-  // Validate prerequisites (no circular dependencies)
   const validatePrerequisites = () => {
     const { prerequisites, courseCode } = formData;
-    
     for (let prereqCode of prerequisites) {
       const prereq = allCourses.find(c => c.courseCode === prereqCode);
       if (prereq && prereq.prerequisites && prereq.prerequisites.includes(courseCode)) {
@@ -95,20 +68,15 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
         return false;
       }
     }
-    
     return true;
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
     if (!validateForm()) return;
     if (!validatePrerequisites()) return;
-    
     setLoading(true);
-    
     try {
       await updateCourse(course.id, {
         courseCode: formData.courseCode.trim(),
@@ -121,19 +89,15 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
         knowledgeBuilt: formData.knowledgeBuilt.trim(),
         updatedAt: new Date()
       });
-      
-      // Success callback
       onCourseUpdated();
       onClose();
     } catch (err) {
       setError(`Failed to update course: ${err.message}`);
-      console.error('Update course error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle modal close
   const handleClose = () => {
     setError('');
     onClose();
@@ -141,85 +105,89 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
 
   if (!isOpen || !course) return null;
 
+  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent";
+  const labelClass = "block text-sm font-medium text-gray-700 mb-1";
+
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Edit Course: {formData.courseCode}</h2>
-          <button className="close-btn" onClick={handleClose} aria-label="Close">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-800">Edit Course: <span className="text-blue-600">{formData.courseCode}</span></h2>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none"
+            aria-label="Close"
+          >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="course-form">
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+
           {/* Error Message */}
-          {error && <div className="error-message">{error}</div>}
+          {error && (
+            <div className="bg-red-50 border border-red-300 text-red-700 text-sm px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
 
           {/* Row 1: Course Code & Title */}
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="courseCode">Course Code *</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Course Code <span className="text-red-500">*</span></label>
               <input
-                id="courseCode"
                 type="text"
                 name="courseCode"
                 value={formData.courseCode}
                 onChange={handleInputChange}
                 placeholder="e.g., CS101"
+                className={inputClass}
                 required
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="courseTitle">Course Title *</label>
+            <div>
+              <label className={labelClass}>Course Title <span className="text-red-500">*</span></label>
               <input
-                id="courseTitle"
                 type="text"
                 name="courseTitle"
                 value={formData.courseTitle}
                 onChange={handleInputChange}
                 placeholder="e.g., Intro to Programming"
+                className={inputClass}
                 required
               />
             </div>
           </div>
 
           {/* Row 2: Units, Year Level, Semester */}
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="units">Units *</label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className={labelClass}>Units <span className="text-red-500">*</span></label>
               <input
-                id="units"
                 type="number"
                 name="units"
                 value={formData.units}
                 onChange={handleInputChange}
                 placeholder="e.g., 3"
                 min="1"
+                className={inputClass}
                 required
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="yearLevel">Year Level</label>
-              <select
-                id="yearLevel"
-                name="yearLevel"
-                value={formData.yearLevel}
-                onChange={handleInputChange}
-              >
+            <div>
+              <label className={labelClass}>Year Level</label>
+              <select name="yearLevel" value={formData.yearLevel} onChange={handleInputChange} className={inputClass}>
                 <option value="1">Year 1</option>
                 <option value="2">Year 2</option>
                 <option value="3">Year 3</option>
                 <option value="4">Year 4</option>
               </select>
             </div>
-            <div className="form-group">
-              <label htmlFor="semester">Semester</label>
-              <select
-                id="semester"
-                name="semester"
-                value={formData.semester}
-                onChange={handleInputChange}
-              >
+            <div>
+              <label className={labelClass}>Semester</label>
+              <select name="semester" value={formData.semester} onChange={handleInputChange} className={inputClass}>
                 <option value="1">1st Semester</option>
                 <option value="2">2nd Semester</option>
                 <option value="Summer">Summer</option>
@@ -227,67 +195,70 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
             </div>
           </div>
 
-          {/* Prerequisites Multi-Select */}
-          <div className="form-group full-width">
-            <label htmlFor="prerequisites">Prerequisites</label>
+          {/* Prerequisites */}
+          <div>
+            <label className={labelClass}>Prerequisites</label>
             <select
-              id="prerequisites"
               multiple
               value={formData.prerequisites}
               onChange={handlePrerequisiteChange}
-              className="multi-select"
+              className={`${inputClass} h-32`}
             >
               {allCourses
-                .filter(c => c.courseCode !== formData.courseCode) // Don't allow self-reference
+                .filter(c => c.courseCode !== formData.courseCode)
                 .map(course => (
                   <option key={course.courseCode} value={course.courseCode}>
                     {course.courseCode} — {course.courseTitle}
                   </option>
                 ))}
             </select>
-            <small>Hold Ctrl (or Cmd on Mac) to select multiple courses</small>
+            <p className="text-xs text-gray-500 mt-1">Hold Ctrl / Cmd to select multiple</p>
           </div>
 
-          {/* Skills Learned (Tag Input - Temporary) */}
-          <div className="form-group full-width">
-            <label htmlFor="skillsLearned">Skills Learned</label>
+          {/* Skills Learned */}
+          <div>
+            <label className={labelClass}>Skills Learned</label>
             <input
-              id="skillsLearned"
               type="text"
               value={formData.skillsLearned.join(', ')}
               onChange={handleSkillsChange}
-              placeholder="e.g., Problem Solving, Java, Object-Oriented Design"
-              className="tag-input"
+              placeholder="e.g., Problem Solving, Java, OOP"
+              className={inputClass}
             />
-            <small>Separate skills with commas</small>
+            <p className="text-xs text-gray-500 mt-1">Separate skills with commas</p>
           </div>
 
           {/* Knowledge Built */}
-          <div className="form-group full-width">
-            <label htmlFor="knowledgeBuilt">Knowledge Built</label>
+          <div>
+            <label className={labelClass}>Knowledge Built</label>
             <textarea
-              id="knowledgeBuilt"
               name="knowledgeBuilt"
               value={formData.knowledgeBuilt}
               onChange={handleInputChange}
-              placeholder="Describe the key concepts and knowledge students will gain..."
-              rows="4"
+              placeholder="Describe the key concepts students will gain..."
+              rows="3"
+              className={inputClass}
             />
           </div>
 
-          {/* Form Actions */}
-          <div className="form-actions">
-            <button type="button" onClick={handleClose} className="btn-cancel">
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition duration-150 min-h-[44px]"
+            >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn-primary"
               disabled={loading}
+              className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition duration-150 min-h-[44px] disabled:opacity-60"
             >
               {loading ? 'Updating Course...' : 'Update Course'}
             </button>
           </div>
+
         </form>
       </div>
     </div>
