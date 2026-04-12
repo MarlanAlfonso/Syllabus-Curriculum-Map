@@ -59,6 +59,19 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
     return true;
   };
 
+  const validateCourseCodeExists = () => {
+    const { courseCode } = formData;
+    // Only validate if the course code has been changed
+    if (courseCode.toUpperCase() !== course.courseCode.toUpperCase()) {
+      const courseExists = allCourses.some(c => c.courseCode.toUpperCase() === courseCode.toUpperCase());
+      if (courseExists) {
+        setError(`Course Code "${courseCode}" already exists. Please use a different code.`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const validatePrerequisites = () => {
     const { prerequisites, courseCode } = formData;
     for (let prereqCode of prerequisites) {
@@ -75,6 +88,7 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
     e.preventDefault();
     setError('');
     if (!validateForm()) return;
+    if (!validateCourseCodeExists()) return;
     if (!validatePrerequisites()) return;
     setLoading(true);
     try {
