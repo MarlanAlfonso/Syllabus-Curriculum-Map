@@ -1,8 +1,10 @@
+# Sprint 2 Log
+
 ## Completed Tasks
 | ID | Task Description | Assigned To | Status |
 | :--- | :--- | :--- | :--- |
-| **T-013** | Write Firestore service functions (no deleteDoc) | Alfonso, Marlan | Completed |
-| **T-014** | Implement prerequisite validation logic | Alfonso, Marlan | Completed |
+| **T-013** | Firestore service functions: getCourses, add, update, disable | Alfonso, Marlan | Completed |
+| **T-014** | Prerequisite validation (circular dependency check) | Alfonso, Marlan | Completed |
 | **T-015** | Build graphDataBuilder.js utility | Alfonso, Marlan | Completed |
 | **T-016** | Build CourseListPage (isActive=true filter) | Hernandez, Janice | Completed |
 | **T-017** | Build AddCourseModal and EditCourseModal | Hernandez, Janice | Completed |
@@ -14,36 +16,29 @@
 | **T-023** | Write and execute TC-001 to TC-010 | Florendo, Angel | Completed |
 | **T-024** | File GitHub Issues and write Sprint 2 log | Florendo, Angel | Completed |
 
----
-
 ## Blocked / Carried Over
-* **T-017:** Blocked waiting for **T-014** (prerequisite validation logic) to ensure multi-select field constraints were functional.
-* **T-023:** Blocked waiting for **T-016**, **T-017**, and **T-018** to be merged into `dev` for integrated environment testing.
+* **T-017:** Blocked waiting for **T-014** (prerequisite validation) to be finalized so the multi-select fields could be properly validated during data entry.
+* **T-023:** Blocked waiting for **T-016**, **T-017**, and **T-018** to be merged into the `dev` branch to allow for full end-to-end test execution.
 
 ## PR Summary
-* **PR #18** — Feature: Firestore CRUD Services
-* **PR #19** — Feature: Prerequisite Validation & Circular Check
-* **PR #20** — UI: Course Management Modals & Tables
-* **PR #21** — Fix: Soft-Disable Logic and Dialogs
-* **PR #22** — Style: Tailwind Layouts for Sprint 2
+* **PR #18:** Feature: Firestore CRUD Services & Data Model
+* **PR #19:** Feature: Prerequisite Validation Logic
+* **PR #20:** UI: Course Management Modals and List View
+* **PR #21:** Fix: Soft-Disable Logic and Confirmation UI
+* **PR #22:** Style: Tailwind Layouts and Responsive Refinement
 
 ## Bugs / GitHub Issues Filed
 * **Issue #40:** [BUG] TC-011 — Vitest environment failing (document is not defined)
-* **Issue #41:** [BUG] TC-005 — Recursive loop detection edge case
-
----
+* **Issue #41:** [BUG] TC-005 — Circular prerequisite check failure on recursive loops
 
 ## Sprint 2 Gate Status
-> **Verification Details**
-* **TC-001 to TC-010:** All test cases have reached **PASS** status after environment hotfix.
-* **TC-006 PASS:** Soft-disable confirmed. Database confirms `isActive: false` status; document persists in Firestore.
-* **TC-008 PASS:** Manual code audit confirmed zero instances of `deleteDoc()` in `src/services/`.
-* **Sign-off:** Florendo has formally signed off to Alfonso on TC-006 and TC-008.
-* **Main Integration:** All Sprint 2 Pull Requests successfully merged to `main`.
-
----
+- **TC-001 to TC-010:** All test cases pass.
+- **TC-006 PASS:** Soft-disable confirmed (isActive: false, document not deleted in Firestore).
+- **TC-008 PASS:** No `deleteDoc()` found in `src/services/` after full code audit.
+- **Sign-off:** Florendo has formally signed off to Alfonso on TC-006 and TC-008.
+- **Main Integration:** All Sprint 2 PRs merged to main.
 
 ## Retrospective Notes
-* **What went well:** The team successfully maintained data integrity by strictly adhering to the "no-delete" policy. Collaboration between the UI and Service layers was excellent.
-* **What to improve:** Environment setup (Vitest/jsdom) needs to be standardized in the project scaffold to prevent testing delays at the sprint deadline.
-* **Technical Difficulty:** **T-014** (Prerequisite Validation) was the most difficult due to the complexity of detecting recursive dependencies within the course structure.
+* **What went well:** The team maintained high data integrity by successfully implementing the soft-disable policy across all components. 
+* **What to improve:** We should standardize the testing environment configurations earlier in the sprint to avoid setup blockers during the final audit phase.
+* **Technical Difficulty:** **T-014** was the most technically difficult task due to the recursive logic required for circular dependency detection.
