@@ -1,32 +1,60 @@
 // src/utils/graphDataBuilder.js
 
-// ─── Auto-positioning helper ───
+/**
+ * Auto-positioning helper with grid layout
+ * Groups courses by year and semester, positions in grid to prevent overlaps
+ * 
+ * Grid layout:
+ * - Each year/semester combo gets a column
+ * - Courses arranged vertically within each column
+ * - Spacing: 320px horizontal, 200px vertical (prevents overlaps)
+ * 
+ * Layout example for 4 years × 2 semesters:
+ * Y1S1 | Y1S2 | Y2S1 | Y2S2 | Y3S1 | Y3S2 | Y4S1 | Y4S2
+ *   0    320    640    960   1280   1600   1920   2240  (x positions)
+ */
 function getPosition(course, allCourses) {
-  const coursesInSameYear = allCourses.filter(
-    (c) => c.yearLevel === course.yearLevel
-  );
-  const indexWithinGroup = coursesInSameYear.findIndex(
-    (c) => c.courseCode === course.courseCode
-  );
+  const semesterNum =
+    typeof course.semester === "string"
+      ? course.semester.includes("1")
+        ? 1
+        : 2
+      : course.semester;
+
+  const yearIndex = Number(course.yearLevel) - 1;
+  const semesterIndex = semesterNum === 1 ? 0 : 1;
+
+  const columnX = (yearIndex * 2 + semesterIndex) * 320;
+
+  const group = allCourses
+    .filter(
+      (c) =>
+        Number(c.yearLevel) === Number(course.yearLevel) &&
+        Number(c.semester) === Number(course.semester)
+    )
+    .sort((a, b) => a.courseCode.localeCompare(b.courseCode));
+
+  const index = group.findIndex((c) => c.courseCode === course.courseCode);
+
   return {
-    x: course.yearLevel * 250,
-    y: indexWithinGroup * 120,
+    x: columnX,
+    y: index * 200,
   };
 }
 
-// ─── filterByYearLevel() ───
+// ─── TASK 1 — filterByYearLevel() ───
 export function filterByYearLevel(courses, yearLevel) {
   if (yearLevel === null || yearLevel === undefined) return courses;
   return courses.filter((c) => c.yearLevel === yearLevel);
 }
 
-// ─── filterBySemester() ───
+// ─── TASK 2 — filterBySemester() ───
 export function filterBySemester(courses, semester) {
   if (semester === null || semester === undefined) return courses;
   return courses.filter((c) => c.semester === semester);
 }
 
-// ─── filterBySkill() ───
+// ─── TASK 3 — filterBySkill() ───
 export function filterBySkill(courses, skill) {
   if (!skill) return courses;
   const lowerSkill = skill.toLowerCase();
@@ -37,71 +65,79 @@ export function filterBySkill(courses, skill) {
   );
 }
 
-// ─── filterByDepartment() ───
-export function filterByDepartment(courses, department) {
-  if (department === null || department === undefined) return courses;
-  return courses.filter((c) => c.department === department);
-}
+// TASK 1 — Main buildGraphData() function
+export function buildGraphData(courses) {
+  // Build nodes — one per course
+  const nodes = courses.map((course) => ({
+    id: course.courseCode,
+    data: {
+      courseCode: course.courseCode,
+      courseTitle: course.courseTitle,
+      yearLevel: course.yearLevel,
+    },
+    position: getPosition(course, courses),
+  }));
 
-// ─── buildGraphData() with filters + isolated node detection ───
-export function buildGraphData(courses, filters = {}) {
-  // Apply non-null filters
-  let filtered = [...courses];
-
-  if (filters.yearLevel != null) {
-    filtered = filterByYearLevel(filtered, filters.yearLevel);
-  }
-  if (filters.semester != null) {
-    filtered = filterBySemester(filtered, filters.semester);
-  }
-  if (filters.skill != null) {
-    filtered = filterBySkill(filtered, filters.skill);
-  }
-  if (filters.department != null) {
-    filtered = filterByDepartment(filtered, filters.department);
-  }
-
-  // Build node IDs set for edge validation
-  const nodeIds = new Set(filtered.map((c) => c.courseCode));
-
-  // Build edges first — needed for isolated node detection
+  // Build edges — one per prerequisite link
   const edges = [];
-  filtered.forEach((course) => {
+  courses.forEach((course) => {
     if (course.prerequisites && course.prerequisites.length > 0) {
       course.prerequisites.forEach((prereqCode) => {
-        if (nodeIds.has(prereqCode)) {
-          edges.push({
-            id: `${prereqCode}-${course.courseCode}`,
-            source: prereqCode,
-            target: course.courseCode,
-          });
-        }
+        edges.push({
+          id: `${prereqCode}-${course.courseCode}`,
+          source: prereqCode,
+          target: course.courseCode,
+        });
       });
     }
   });
 
-  // Build set of all course codes that appear as a source in edges
-  // (i.e. courses that other courses depend on)
-  const hasDependent = new Set(edges.map((e) => e.source));
+  return { nodes, edges };
+}
 
-  // Build nodes with isIsolated flag
-  const nodes = filtered.map((course) => {
-    const hasNoPrerequisites =
-      !course.prerequisites || course.prerequisites.length === 0;
-    const hasNoDependents = !hasDependent.has(course.courseCode);
-    const isIsolated = hasNoPrerequisites && hasNoDependents;
+/**
+ * Get available unique values for filtering
+ * Useful for populating dropdown filters
+ */
+export function getFilterOptions(courses) {
+  return {
+    yearLevels: [...new Set(courses.map(c => c.yearLevel))].sort((a, b) => a - b),
+    semesters: [...new Set(courses.map(c => c.semester))].filter(Boolean).sort(),
+    departments: [...new Set(courses.map(c => c.department))].filter(Boolean).sort(),
+    skills: [...new Set(
+      courses.flatMap(c => c.skillsLearned || [])
+    )].sort()
+  };
+}
 
-    return {
-      id: course.courseCode,
-      data: {
-        courseCode: course.courseCode,
-        courseTitle: course.courseTitle,
-        yearLevel: course.yearLevel,
-        isIsolated,
-      },
-      position: getPosition(course, filtered),
-    };
+/**
+ * Helper function: Get layout bounds
+ * Useful for auto-sizing canvas or debugging
+ */
+export function getLayoutBounds(nodes) {
+  if (nodes.length === 0) return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0 };
+  
+  let minX = Infinity, maxX = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+
+  nodes.forEach(node => {
+    const x = node.position.x;
+    const y = node.position.y;
+    const nodeWidth = 160;
+    const nodeHeight = 70;
+
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x + nodeWidth);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y + nodeHeight);
   });
 
-  return { nodes, edges };
+  return {
+    minX,
+    maxX,
+    minY,
+    maxY,
+    width: maxX - minX + 40,  // Add padding
+    height: maxY - minY + 40  // Add padding
+  };
 }
