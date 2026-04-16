@@ -1,23 +1,26 @@
 # Sprint 2 Test Cases: Course CRUD & Audit
 
 **Date:** April 9, 2026
+
 **Tester:** Angel Florendo | Marlan Alfonso
+
 **Mandatory Sign-off:** TC-006 (Soft-Disable), TC-008 (Audit Trail)
 
 ---
 
 ## TC-001: Add course with all required fields
-**Feature:** Add Course
-**Precondition:** App is running, CourseListPage is visible.
+- **Feature:** Add Course
+- **Precondition:** App is running, CourseListPage is visible.
+
 **Steps:**
 1. Go to /courses
 2. Click "Add Course"
 3. Fill in all required fields with valid data (Course Code: CS101, Title: Introduction to Computer Science, Units: 3, Year Level: Year 1, Semester: 1st)
 4. Click Save
 
-**Expected Result:** New course appears in the CourseListPage table. Document visible in Firestore console with isActive: true.
-**Actual Result:** Course "Introduction to Computer Science" (CS101) appeared in the table. Firestore document confirmed with isActive: true, correct fields, and createdAt timestamp.
-**Status:** PASS
+- **Expected Result:** New course appears in the CourseListPage table. Document visible in Firestore console with isActive: true.
+- **Actual Result:** Course "Introduction to Computer Science" (CS101) appeared in the table. Firestore document confirmed with isActive: true, correct fields, and createdAt timestamp.
+- **Status:** PASS
 
 ---
 
@@ -100,7 +103,7 @@
 4. Check the table and Firestore console
 
 **Expected Result:** Course disappears from the table. Firestore document has isActive: false. Document still exists (not deleted).
-**Actual Result:** CS402 (Intelligent Systems) disappeared from the CourseListPage table. Firestore confirmed isActive: false on document BW3z6uoLCaKK1zwibbzN. Document still exists — not deleted.
+- **Actual Result:** CS402 (Intelligent Systems) disappeared from the CourseListPage table. Firestore confirmed isActive: false on document BW3z6uoLCaKK1zwibbzN. Document still exists — not deleted.
 **Status:** PASS ✅ MANDATORY SIGN-OFF CLEARED
 
 ---
