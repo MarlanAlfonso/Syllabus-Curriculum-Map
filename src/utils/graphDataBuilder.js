@@ -68,15 +68,27 @@ export function filterBySkill(courses, skill) {
 // TASK 1 — Main buildGraphData() function
 export function buildGraphData(courses) {
   // Build nodes — one per course
-  const nodes = courses.map((course) => ({
-    id: course.courseCode,
-    data: {
-      courseCode: course.courseCode,
-      courseTitle: course.courseTitle,
-      yearLevel: course.yearLevel,
-    },
-    position: getPosition(course, courses),
-  }));
+  const courseCodes = new Set(courses.map((c) => c.courseCode));
+
+  const nodes = courses.map((course) => {
+    const isIsolated =
+      (!course.prerequisites || course.prerequisites.length === 0) &&
+      !courses.some(
+        (c) => c.prerequisites && c.prerequisites.includes(course.courseCode)
+      );
+
+    return {
+      id: course.courseCode,
+      type: 'courseNode',
+      data: {
+        courseCode: course.courseCode,
+        courseTitle: course.courseTitle,
+        yearLevel: Number(course.yearLevel),
+        isIsolated,
+      },
+      position: getPosition(course, courses),
+    };
+  });
 
   // Build edges — one per prerequisite link
   const edges = [];
