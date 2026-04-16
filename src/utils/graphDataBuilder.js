@@ -65,15 +65,36 @@ export function filterBySkill(courses, skill) {
   );
 }
 
-// TASK 1 — Main buildGraphData() function
-export function buildGraphData(courses) {
-  // Build nodes — one per course
-  const courseCodes = new Set(courses.map((c) => c.courseCode));
+// src/utils/graphDataBuilder.js
 
-  const nodes = courses.map((course) => {
+// ... keep getPosition, filterByYearLevel, filterBySemester, filterBySkill,
+//     getFilterOptions, getLayoutBounds exactly as-is ...
+
+// TASK 1 — Main buildGraphData() function  (UPDATED: accepts optional filters)
+export function buildGraphData(courses, filters = {}) {
+  // Apply filters before building the graph
+  let filtered = [...courses];
+
+  if (filters.yearLevel !== null && filters.yearLevel !== undefined) {
+    filtered = filterByYearLevel(filtered, filters.yearLevel);
+  }
+  if (filters.semester !== null && filters.semester !== undefined) {
+    filtered = filterBySemester(filtered, filters.semester);
+  }
+  if (filters.skill) {
+    filtered = filterBySkill(filtered, filters.skill);
+  }
+  if (filters.department !== null && filters.department !== undefined) {
+    filtered = filtered.filter((c) => c.department === filters.department);
+  }
+
+  // Only keep edges where BOTH source and target are in the filtered set
+  const filteredCodes = new Set(filtered.map((c) => c.courseCode));
+
+  const nodes = filtered.map((course) => {
     const isIsolated =
       (!course.prerequisites || course.prerequisites.length === 0) &&
-      !courses.some(
+      !filtered.some(
         (c) => c.prerequisites && c.prerequisites.includes(course.courseCode)
       );
 
@@ -86,20 +107,22 @@ export function buildGraphData(courses) {
         yearLevel: Number(course.yearLevel),
         isIsolated,
       },
-      position: getPosition(course, courses),
+      position: getPosition(course, filtered),
     };
   });
 
-  // Build edges — one per prerequisite link
   const edges = [];
-  courses.forEach((course) => {
+  filtered.forEach((course) => {
     if (course.prerequisites && course.prerequisites.length > 0) {
       course.prerequisites.forEach((prereqCode) => {
-        edges.push({
-          id: `${prereqCode}-${course.courseCode}`,
-          source: prereqCode,
-          target: course.courseCode,
-        });
+        // Only draw edge if the prerequisite is also in the filtered set
+        if (filteredCodes.has(prereqCode)) {
+          edges.push({
+            id: `${prereqCode}-${course.courseCode}`,
+            source: prereqCode,
+            target: course.courseCode,
+          });
+        }
       });
     }
   });

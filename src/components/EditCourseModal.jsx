@@ -7,9 +7,9 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
     courseTitle: '',
     units: '',
     yearLevel: '1',
-    semester: '1st',
+    semester: '1',
     prerequisites: [],
-    skillsLearned: [],
+    skillsLearned: '',
     knowledgeBuilt: ''
   });
 
@@ -18,14 +18,18 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
 
   useEffect(() => {
     if (course) {
+      const skillsString = Array.isArray(course.skillsLearned) 
+        ? course.skillsLearned.join(', ')
+        : course.skillsLearned || '';
+
       setFormData({
         courseCode: course.courseCode || '',
         courseTitle: course.courseTitle || '',
         units: course.units || '',
         yearLevel: String(course.yearLevel || '1'),
-        semester: course.semester || '1st',
+        semester: String(course.semester || '1'),
         prerequisites: course.prerequisites || [],
-        skillsLearned: course.skillsLearned || [],
+        skillsLearned: skillsString,
         knowledgeBuilt: course.knowledgeBuilt || ''
       });
       setError('');
@@ -44,11 +48,7 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
   };
 
   const handleSkillsChange = (e) => {
-    const value = e.target.value;
-    setFormData(prev => ({
-      ...prev,
-      skillsLearned: value.split(',').map(skill => skill.trim()).filter(skill => skill !== '')
-    }));
+    setFormData(prev => ({ ...prev, skillsLearned: e.target.value }));
   };
 
   const validateForm = () => {
@@ -84,6 +84,13 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
     return true;
   };
 
+  const parseSkills = () => {
+    return formData.skillsLearned
+      .split(',')
+      .map(skill => skill.trim())
+      .filter(skill => skill !== '');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -93,14 +100,14 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
     setLoading(true);
     try {
       await updateCourse(course.id, {
-        courseCode: formData.courseCode.trim(),
-        courseTitle: formData.courseTitle.trim(),
+        courseCode: String(formData.courseCode || '').trim(),
+        courseTitle: String(formData.courseTitle || '').trim(),
         units: parseInt(formData.units),
         yearLevel: parseInt(formData.yearLevel),
-        semester: formData.semester,
-        prerequisites: formData.prerequisites,
-        skillsLearned: formData.skillsLearned,
-        knowledgeBuilt: formData.knowledgeBuilt.trim(),
+        semester: String(formData.semester || ''),
+        prerequisites: Array.isArray(formData.prerequisites) ? formData.prerequisites : [],
+        skillsLearned: parseSkills(),
+        knowledgeBuilt: String(formData.knowledgeBuilt || '').trim(),
         updatedAt: new Date()
       });
       onCourseUpdated();
@@ -234,7 +241,8 @@ export default function EditCourseModal({ isOpen, onClose, onCourseUpdated, cour
             <label className={labelClass}>Skills Learned</label>
             <input
               type="text"
-              value={formData.skillsLearned.join(', ')}
+              name="skillsLearned"
+              value={formData.skillsLearned}
               onChange={handleSkillsChange}
               placeholder="e.g., Problem Solving, Java, OOP"
               className={inputClass}
