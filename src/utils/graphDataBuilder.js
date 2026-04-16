@@ -65,117 +65,32 @@ export function filterBySkill(courses, skill) {
   );
 }
 
-// ─── TASK 4 — filterByDepartment() ───
-export function filterByDepartment(courses, department) {
-  if (department === null || department === undefined) return courses;
-  return courses.filter((c) => c.department === department);
-}
+// TASK 1 — Main buildGraphData() function
+export function buildGraphData(courses) {
+  // Build nodes — one per course
+  const nodes = courses.map((course) => ({
+    id: course.courseCode,
+    data: {
+      courseCode: course.courseCode,
+      courseTitle: course.courseTitle,
+      yearLevel: course.yearLevel,
+    },
+    position: getPosition(course, courses),
+  }));
 
-// ─── TASK 5 — buildGraphData() with optional filters ───
-/**
- * Converts courses array to React Flow nodes and edges
- * Supports filtering by yearLevel, semester, skill, and department
- * 
- * @param {Array} courses - Array of course objects from Firestore
- * @param {Object} filters - Optional filter object
- *   - filters.yearLevel: number or null
- *   - filters.semester: string or null
- *   - filters.skill: string or null
- *   - filters.department: string or null
- * @returns {Object} { nodes, edges } - React Flow compatible data
- */
-export function buildGraphData(courses, filters = {}) {
-  // Apply non-null filters
-  let filtered = [...courses];
-
-  if (filters.yearLevel != null) {
-    filtered = filterByYearLevel(filtered, filters.yearLevel);
-  }
-  if (filters.semester != null) {
-    filtered = filterBySemester(filtered, filters.semester);
-  }
-  if (filters.skill != null) {
-    filtered = filterBySkill(filtered, filters.skill);
-  }
-  if (filters.department != null) {
-    filtered = filterByDepartment(filtered, filters.department);
-  }
-
-  // Build node IDs set for orphan edge prevention
-  const nodeIds = new Set(filtered.map((c) => c.courseCode));
-
-  // Build nodes with enhanced styling
-  const nodes = filtered.map((course) => {
-    const position = getPosition(course, filtered);
-    
-    return {
-      id: course.courseCode,
-      data: {
-        label: `${course.courseCode}\n${course.courseTitle}`,
-        courseCode: course.courseCode,
-        courseTitle: course.courseTitle,
-        yearLevel: course.yearLevel,
-      },
-      position,
-      style: {
-        background: '#fff',
-        border: '2px solid #3498db',
-        borderRadius: '8px',
-        padding: '12px',
-        width: '160px',
-        minHeight: '70px',
-        fontWeight: 'bold',
-        fontSize: '12px',
-        textAlign: 'center',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        transition: 'all 0.3s ease',
-        overflow: 'visible',
-        whiteSpace: 'pre-wrap',
-        wordWrap: 'break-word'
-      }
-    };
-  });
-
-  // Build edges with directed arrows
-  // Only include edges where both source and target exist in filtered nodes
+  // Build edges — one per prerequisite link
   const edges = [];
-  const edgeSet = new Set(); // Prevent duplicates
-
-  filtered.forEach((course) => {
+  courses.forEach((course) => {
     if (course.prerequisites && course.prerequisites.length > 0) {
       course.prerequisites.forEach((prereqCode) => {
-        if (nodeIds.has(prereqCode)) {
-          const edgeId = `${prereqCode}-${course.courseCode}`;
-          
-          // Avoid duplicate edges
-          if (!edgeSet.has(edgeId)) {
-            edges.push({
-              id: edgeId,
-              source: prereqCode,
-              target: course.courseCode,
-              animated: false,
-              markerEnd: { type: 'arrowclosed' }, // ← Directed arrow from prerequisite to dependent
-              style: {
-                strokeWidth: 2,
-                stroke: '#95a5a6'
-              }
-            });
-            edgeSet.add(edgeId);
-          }
-        }
+        edges.push({
+          id: `${prereqCode}-${course.courseCode}`,
+          source: prereqCode,
+          target: course.courseCode,
+        });
       });
     }
   });
-
-  // Debug logging
-  console.log(`✅ Built curriculum graph:`);
-  console.log(`   Nodes: ${nodes.length}`);
-  console.log(`   Edges: ${edges.length}`);
-  console.log(`   Course codes: ${nodes.map(n => n.id).join(', ')}`);
-  
-  if (nodes.length < courses.length) {
-    console.warn(`⚠️ Warning: Filtered from ${courses.length} to ${nodes.length} courses`);
-  }
 
   return { nodes, edges };
 }
