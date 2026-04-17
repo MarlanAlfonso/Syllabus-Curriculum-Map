@@ -1,43 +1,97 @@
 import { Handle, Position } from '@xyflow/react';
 
 const yearLevelStyles = {
-  1: 'bg-blue-100 border-blue-400 text-blue-800',
-  2: 'bg-green-100 border-green-400 text-green-800',
-  3: 'bg-amber-100 border-amber-400 text-amber-800',
-  4: 'bg-purple-100 border-purple-400 text-purple-800',
+  1: { background: '#dbeafe', border: '2px solid #60a5fa', color: '#1e40af' },
+  2: { background: '#dcfce7', border: '2px solid #4ade80', color: '#166534' },
+  3: { background: '#fef9c3', border: '2px solid #facc15', color: '#854d0e' },
+  4: { background: '#f3e8ff', border: '2px solid #c084fc', color: '#6b21a8' },
 };
 
 const yearLevelBadge = {
-  1: 'bg-blue-200 text-blue-700',
-  2: 'bg-green-200 text-green-700',
-  3: 'bg-amber-200 text-amber-700',
-  4: 'bg-purple-200 text-purple-700',
+  1: { background: '#bfdbfe', color: '#1d4ed8' },
+  2: { background: '#bbf7d0', color: '#15803d' },
+  3: { background: '#fef08a', color: '#a16207' },
+  4: { background: '#e9d5ff', color: '#7e22ce' },
 };
 
 export default function CourseNode({ data }) {
   const { courseCode, courseTitle, yearLevel, isIsolated } = data;
-  const colorClass = yearLevelStyles[yearLevel] || 'bg-gray-100 border-gray-400 text-gray-800';
-  const badgeClass = yearLevelBadge[yearLevel] || 'bg-gray-200 text-gray-700';
+
+  const colorStyle = yearLevelStyles[yearLevel] || {
+    background: '#f1f5f9',
+    border: '2px solid #94a3b8',
+    color: '#334155',
+  };
+
+  const badgeStyle = yearLevelBadge[yearLevel] || {
+    background: '#e2e8f0',
+    color: '#475569',
+  };
+
+  const nodeStyle = isIsolated
+    ? {
+        background: '#ffffff',
+        border: '2px dashed #9ca3af',
+        color: '#374151',
+        borderRadius: '10px',
+        padding: '10px 12px',
+        width: '176px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        textAlign: 'left',
+      }
+    : {
+        ...colorStyle,
+        borderRadius: '10px',
+        padding: '10px 12px',
+        width: '176px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        textAlign: 'left',
+      };
 
   return (
-    <div
-      className={`rounded-lg border-2 px-3 py-2 w-44 shadow-sm text-left
-        ${isIsolated ? 'border-dashed border-gray-400 bg-white' : colorClass}
-      `}
-    >
+    <div style={nodeStyle}>
       <Handle type="target" position={Position.Top} />
 
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-bold text-sm">{courseCode}</span>
-        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${badgeClass}`}>
+      {/* Course Code + Year Badge */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+        <span style={{ fontWeight: '700', fontSize: '13px' }}>{courseCode}</span>
+        <span style={{
+          fontSize: '11px',
+          fontWeight: '600',
+          padding: '2px 7px',
+          borderRadius: '999px',
+          ...badgeStyle,
+        }}>
           Y{yearLevel}
         </span>
       </div>
 
-      <p className="text-xs leading-tight line-clamp-2">{courseTitle}</p>
+      {/* Course Title */}
+      <p style={{
+        margin: 0,
+        fontSize: '11px',
+        lineHeight: '1.4',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+      }}>
+        {courseTitle}
+      </p>
 
+      {/* Isolated Badge */}
       {isIsolated && (
-        <span className="mt-1 inline-block text-xs bg-gray-100 text-gray-500 border border-gray-300 rounded px-1.5 py-0.5">
+        <span style={{
+          marginTop: '6px',
+          display: 'inline-block',
+          fontSize: '10px',
+          fontWeight: '500',
+          color: '#6b7280',
+          background: '#f3f4f6',
+          border: '1px solid #d1d5db',
+          borderRadius: '4px',
+          padding: '2px 6px',
+        }}>
           Foundational
         </span>
       )}
