@@ -1,0 +1,48 @@
+# Design Rationale
+
+**Project:** Course Knowledge Map
+**Sprint:** M-09
+**Author:** Angela R. Militar
+**Date:** April 17, 2026
+
+---
+
+## Section 1 — Color Palette Rationale
+
+The color palette for this application was designed with a single guiding principle: color should communicate meaning, not just aesthetics. Each year level in the curriculum is assigned a distinct color, and those colors were chosen to reflect the progressive nature of academic knowledge. Year 1 courses are coded in blue, a color conventionally associated with foundation, calm, and beginnings — appropriate for introductory material that students encounter first. As the year levels increase and the subject matter grows in complexity and specialization, the palette shifts toward warmer tones, moving through greens and yellows into oranges and reds for the more advanced levels. This warm progression mirrors the increasing intensity and depth of knowledge that students are expected to engage with over time.
+
+Tailwind CSS utility classes were used exclusively for color application rather than writing custom CSS. This decision was made for three reasons. First, Tailwind's predefined color scale ensures visual consistency across every component without the risk of slight variations that come from manually defining hex values in multiple places. Second, using utility classes makes the codebase significantly easier to maintain — any future redesign of the color system requires changing a class name rather than hunting through stylesheets. Third, Tailwind's responsive utilities integrate naturally with the color classes, allowing the application to adapt its layout and visual presentation across screen sizes without additional configuration.
+
+From a knowledge management perspective, the color coding serves a critical navigational function. When a user is looking at the course map, which can contain dozens of interconnected nodes, they need to orient themselves quickly without reading every label. The year-level color coding allows users to scan the graph visually and immediately understand the temporal and difficulty structure of the curriculum. A cluster of blue nodes in the upper region of the graph signals foundational knowledge; a cluster of orange nodes further down signals advanced coursework. This supports one of the core goals of knowledge visualization: reducing cognitive load by encoding information spatially and visually rather than requiring users to read and interpret text for every data point.
+
+---
+
+## Section 2 — Navigation Structure Rationale
+
+The application is structured around a persistent AppShell composed of a top Navbar and a collapsible Sidebar. This layout was chosen deliberately to support the navigational needs of users who are exploring a complex knowledge domain. Because the Navbar remains visible at all times, users always have a stable reference point regardless of where they are in the application. They can switch between the Course List and the Map view without losing their sense of place, and they never need to use the browser's back button to return to a primary section. This kind of persistent global navigation is a well-established pattern for applications where users need to move fluidly between different views of the same underlying data.
+
+The Sidebar was designed with future extensibility in mind. In its current form it provides structural framing for the map canvas, but it is intended to eventually house filter controls — allowing users to filter the graph by year level, department, or prerequisite status. Placing these controls in the Sidebar rather than in a modal or a separate page is an intentional UX decision: keeping filters physically adjacent to the map canvas minimizes the cognitive distance between the act of filtering and the act of viewing results. Users do not need to shift their attention away from the visualization to adjust what they are seeing.
+
+The two primary routes — `/courses` and `/map` — were chosen because they represent the two fundamental activities that a knowledge management system must support: retrieval and visualization. The `/courses` route supports knowledge retrieval, giving users a structured, searchable list of all courses in the system. The `/map` route supports knowledge visualization, presenting the same data as an interactive directed graph that reveals relationships and dependencies. Together, these two views allow users to engage with the curriculum both analytically and spatially, depending on what their current task requires.
+
+---
+
+## Section 3 — KM Rationale for the Graph Layout
+
+A directed graph was chosen as the primary visualization format over alternatives such as tables, trees, or flat lists because it is the most faithful representation of how prerequisite knowledge actually works. A table can show course attributes but cannot show relationships. A tree imposes a strict hierarchy that does not reflect the reality of curricula, where a single course may be a prerequisite for multiple downstream courses and where some courses have multiple prerequisites converging on them. A directed graph, by contrast, makes both the existence and the direction of knowledge dependencies explicit. Each edge in the graph is an arrow that points from a prerequisite course to the course that depends on it, showing not just that two courses are related but how knowledge flows between them.
+
+Nodes in the graph are grouped by year level in the auto-layout, which means the vertical or horizontal axis of the visualization encodes time and academic progression. This is consistent with how knowledge management theory treats learning sequences: knowledge is not a flat collection of facts but a structured progression where earlier knowledge enables later knowledge. By grouping nodes spatially according to the year in which they are typically taken, the graph makes this progression visible at a glance. A user can see not only which courses are prerequisites for which, but roughly when in a student's academic journey each piece of knowledge is expected to be acquired.
+
+Isolated nodes — courses that have no prerequisite relationships connecting them to the rest of the graph — are rendered with a visually distinct style to draw attention to their disconnected status. From a knowledge management perspective, isolated nodes are significant: they may represent standalone knowledge units that are genuinely self-contained, or they may represent gaps in the data where prerequisite relationships exist in practice but have not yet been recorded in the system. Making these nodes visually distinct prompts course designers and curriculum planners to examine them and determine whether they should be connected to the broader knowledge network.
+
+The direction of edges was standardized so that arrows always point from the prerequisite course to the dependent course — that is, from earlier knowledge to later knowledge. This matches the natural direction of knowledge building and avoids the confusion that would arise from reversing the arrow direction. When a user follows an edge with their eye, they are tracing the path that a student's learning must follow: first this, then that. This directionality is fundamental to the usefulness of the graph as a knowledge management tool.
+
+---
+
+## Section 4 — Usability Notes
+
+During the Sprint 2 usability walkthrough conducted as part of T-020, several observations were collected from early testers who interacted with a working prototype of the application. The primary piece of feedback was that the distinction between the Course List and the Map view was not immediately obvious to first-time users — testers were unsure whether clicking on a course in the list would navigate them to the map or open a detail panel. In response to this feedback, the navigation labels were made more explicit and the routing behavior was clarified so that the two views are clearly independent. Testers also noted that the graph could feel visually overwhelming when all courses were displayed simultaneously without any filtering, which reinforced the decision to plan filter controls as a near-term addition to the Sidebar.
+
+From personal use of the application during Sprint 3, a few additional observations emerged. The auto-layout algorithm performs well for small to medium-sized graphs, but as the number of nodes increases, edge crossings become more frequent and the visual clarity of the prerequisite paths degrades. This is a known limitation of force-directed layouts and would benefit from a more structured hierarchical layout algorithm in a future iteration. Additionally, there is currently no way to search for a specific course by name within the map view — users must either scroll the list or visually scan the graph, which becomes inefficient as the dataset grows.
+
+In a future iteration, the following improvements would most directly benefit the user experience. A search-by-title feature on the map view would allow users to locate a specific node instantly and have the graph zoom or pan to center on it. A zoom-to-node interaction, triggered either by clicking a course in the list or by typing in a search field, would significantly reduce the time needed to find and examine a specific course's prerequisite relationships. Finally, a print or export function — allowing users to export the current graph view as an image or PDF — would make the tool useful not just for interactive exploration but for reporting and curriculum review meetings where a static artifact is needed.
