@@ -5,7 +5,7 @@ import { getCourses } from '../services/courseService';
 import { buildGraphData, getFilterOptions } from '../utils/graphDataBuilder';
 import { ReactFlow, Controls, Background, ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import CourseNode from '../components/map/CourseNode'; //Wire the onNodeClick event handler
+import CourseNode from '../components/map/CourseNode';
 import CourseDetailPanel from '../components/map/CourseDetailPanel';
 
 const nodeTypes = { courseNode: CourseNode };
@@ -18,7 +18,7 @@ const DEFAULT_FILTERS = {
 };
 
 export default function CurriculumMapPage() {
-  const [courses, setCourses] = useState([]);         // raw full list — never filtered
+  const [courses, setCourses] = useState([]);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,6 @@ export default function CurriculumMapPage() {
     fetchCourses();
   }, []);
 
-  // Re-build graph whenever filters change (courses must already be loaded)
   useEffect(() => {
     if (courses.length === 0) return;
     const { nodes: graphNodes, edges: graphEdges } = buildGraphData(courses, filters);
@@ -88,8 +87,11 @@ export default function CurriculumMapPage() {
     setSelectedCourse(course || null);
   };
 
+  const hasActiveFilters = Object.values(filters).some((v) => v !== null);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%' }}>
+
       {/* Header */}
       <div style={{
         padding: '20px',
@@ -124,124 +126,11 @@ export default function CurriculumMapPage() {
         </div>
       </div>
 
-      {/* ── TASK 2 — Filter Panel ── */}
-      {!loading && !error && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          padding: '12px 20px',
-          background: '#f0f4f8',
-          borderBottom: '1px solid #dde3ea',
-          flexWrap: 'wrap',
-        }}>
-
-          {/* Year Level */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-            Year Level:
-            <select
-              value={filters.yearLevel ?? ''}
-              onChange={(e) =>
-                handleFilterChange('yearLevel', e.target.value ? Number(e.target.value) : null)
-              }
-              style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #ccc' }}
-            >
-              <option value="">All</option>
-              {(filterOptions.yearLevels.length > 0
-                ? filterOptions.yearLevels
-                : [1, 2, 3, 4]
-              ).map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </label>
-
-          {/* Semester */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-            Semester:
-            <select
-              value={filters.semester ?? ''}
-              onChange={(e) =>
-                handleFilterChange('semester', e.target.value || null)
-              }
-              style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #ccc' }}
-            >
-              <option value="">All</option>
-              {(filterOptions.semesters.length > 0
-                ? filterOptions.semesters
-                : ['1st', '2nd', 'Summer']
-              ).map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </label>
-
-          {/* Skills Tag */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-            Skills Tag:
-            <input
-              type="text"
-              placeholder="e.g. data-structures"
-              value={filters.skill ?? ''}
-              onChange={(e) =>
-                handleFilterChange('skill', e.target.value || null)
-              }
-              style={{
-                padding: '6px 8px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                width: '160px',
-              }}
-            />
-          </label>
-
-          {/* Department */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-            Department:
-            <select
-              value={filters.department ?? ''}
-              onChange={(e) =>
-                handleFilterChange('department', e.target.value || null)
-              }
-              style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #ccc' }}
-            >
-              <option value="">All</option>
-              {(filterOptions.departments.length > 0
-                ? filterOptions.departments
-                : ['CS', 'IT', 'IS']
-              ).map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
-          </label>
-
-          {/* ── TASK 3 — Clear Filters ── */}
-          <button
-            onClick={handleClearFilters}
-            style={{
-              padding: '6px 14px',
-              background: '#e74c3c',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              marginLeft: 'auto',
-            }}
-          >
-            Clear Filters
-          </button>
-        </div>
-      )}
-
       {/* Loading State */}
       {loading && (
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          background: '#f5f5f5',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: '100%', background: '#f5f5f5',
         }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>⟳</div>
@@ -253,13 +142,8 @@ export default function CurriculumMapPage() {
       {/* Error State */}
       {error && (
         <div style={{
-          padding: '20px',
-          background: '#fee',
-          borderBottom: '1px solid #fcc',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          zIndex: 10,
+          padding: '20px', background: '#fee', borderBottom: '1px solid #fcc',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10,
         }}>
           <div>
             <p style={{ margin: 0, color: '#c33', fontWeight: 'bold' }}>❌ Error: {error}</p>
@@ -270,14 +154,9 @@ export default function CurriculumMapPage() {
           <button
             onClick={fetchCourses}
             style={{
-              padding: '8px 16px',
-              background: '#c33',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              marginLeft: '16px',
+              padding: '8px 16px', background: '#c33', color: 'white',
+              border: 'none', borderRadius: '4px', cursor: 'pointer',
+              whiteSpace: 'nowrap', marginLeft: '16px',
             }}
           >
             Try Again
@@ -285,68 +164,243 @@ export default function CurriculumMapPage() {
         </div>
       )}
 
-      {/* React Flow Canvas */}
-      {!loading && !error && nodes.length > 0 && (
-        <ReactFlowProvider>
-          <div style={{ flex: 1, width: '100%', position: 'relative' }}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onNodeClick={handleNodeClick}
-              fitView
-            >
-              <Background />
-              <Controls />
-            </ReactFlow>
+      {/* Main Layout: Sidebar + Canvas */}
+      {!loading && !error && (
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-            {selectedCourse && (
-              <CourseDetailPanel
-                course={selectedCourse}
-                onClose={() => setSelectedCourse(null)}
-              />
-            )}
-          </div>
-        </ReactFlowProvider>
-      )}
+          {/* Filter Sidebar */}
+          <div style={{
+            width: '220px',
+            minWidth: '220px',
+            background: '#f8fafc',
+            borderRight: '1px solid #e2e8f0',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            overflowY: 'auto',
+          }}>
+            <h2 style={{
+              margin: 0, fontSize: '11px', fontWeight: '700',
+              textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748b',
+            }}>
+              Filters
+            </h2>
 
-      {/* Empty State — no results after filtering */}
-      {!loading && !error && nodes.length === 0 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          background: '#f5f5f5',
-        }}>
-          <div style={{ textAlign: 'center', color: '#666' }}>
-            <p style={{ fontSize: '24px', marginBottom: '8px' }}>
-              {courses.length > 0 ? '🔍 No Matching Courses' : '📚 No Courses Found'}
-            </p>
-            <p style={{ margin: 0, fontSize: '14px' }}>
-              {courses.length > 0
-                ? 'Try adjusting or clearing your filters'
-                : "Add courses to your Firestore 'courses' collection to see the curriculum map"}
-            </p>
-            {courses.length > 0 && (
-              <button
-                onClick={handleClearFilters}
+            {/* Year Level */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{
+                fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: filters.yearLevel ? '#2563eb' : '#64748b',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                Year Level
+                {filters.yearLevel && (
+                  <span style={{
+                    width: '8px', height: '8px', borderRadius: '50%',
+                    background: '#3b82f6', display: 'inline-block',
+                  }} />
+                )}
+              </label>
+              <select
+                value={filters.yearLevel ?? ''}
+                onChange={(e) => handleFilterChange('yearLevel', e.target.value ? Number(e.target.value) : null)}
                 style={{
-                  marginTop: '12px',
-                  padding: '8px 16px',
-                  background: '#3498db',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: '7px 10px', borderRadius: '6px', fontSize: '13px',
+                  background: 'white', outline: 'none', cursor: 'pointer',
+                  border: filters.yearLevel ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                  boxShadow: filters.yearLevel ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
                 }}
               >
-                Clear Filters
-              </button>
+                <option value="">All</option>
+                {(filterOptions.yearLevels.length > 0 ? filterOptions.yearLevels : [1, 2, 3, 4]).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Semester */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{
+                fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: filters.semester ? '#2563eb' : '#64748b',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                Semester
+                {filters.semester && (
+                  <span style={{
+                    width: '8px', height: '8px', borderRadius: '50%',
+                    background: '#3b82f6', display: 'inline-block',
+                  }} />
+                )}
+              </label>
+              <select
+                value={filters.semester ?? ''}
+                onChange={(e) => handleFilterChange('semester', e.target.value || null)}
+                style={{
+                  padding: '7px 10px', borderRadius: '6px', fontSize: '13px',
+                  background: 'white', outline: 'none', cursor: 'pointer',
+                  border: filters.semester ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                  boxShadow: filters.semester ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
+                }}
+              >
+                <option value="">All</option>
+                {(filterOptions.semesters.length > 0 ? filterOptions.semesters : ['1st', '2nd', 'Summer']).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Skills Tag */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{
+                fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: filters.skill ? '#2563eb' : '#64748b',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                Skills Tag
+                {filters.skill && (
+                  <span style={{
+                    width: '8px', height: '8px', borderRadius: '50%',
+                    background: '#3b82f6', display: 'inline-block',
+                  }} />
+                )}
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. data-structures"
+                value={filters.skill ?? ''}
+                onChange={(e) => handleFilterChange('skill', e.target.value || null)}
+                style={{
+                  padding: '7px 10px', borderRadius: '6px', fontSize: '13px',
+                  background: 'white', outline: 'none',
+                  border: filters.skill ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                  boxShadow: filters.skill ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
+                }}
+              />
+            </div>
+
+            {/* Department */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{
+                fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: filters.department ? '#2563eb' : '#64748b',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                Department
+                {filters.department && (
+                  <span style={{
+                    width: '8px', height: '8px', borderRadius: '50%',
+                    background: '#3b82f6', display: 'inline-block',
+                  }} />
+                )}
+              </label>
+              <select
+                value={filters.department ?? ''}
+                onChange={(e) => handleFilterChange('department', e.target.value || null)}
+                style={{
+                  padding: '7px 10px', borderRadius: '6px', fontSize: '13px',
+                  background: 'white', outline: 'none', cursor: 'pointer',
+                  border: filters.department ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                  boxShadow: filters.department ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
+                }}
+              >
+                <option value="">All</option>
+                {(filterOptions.departments.length > 0 ? filterOptions.departments : ['CS', 'IT', 'IS']).map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Clear Filters Button */}
+            <button
+              onClick={handleClearFilters}
+              disabled={!hasActiveFilters}
+              style={{
+                marginTop: 'auto',
+                padding: '8px 14px',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: hasActiveFilters ? '#374151' : '#9ca3af',
+                background: 'white',
+                border: '1px solid',
+                borderColor: hasActiveFilters ? '#d1d5db' : '#e5e7eb',
+                borderRadius: '6px',
+                cursor: hasActiveFilters ? 'pointer' : 'not-allowed',
+                transition: 'all 0.15s',
+              }}
+            >
+              ✕ Clear Filters
+            </button>
+          </div>
+
+          {/* Canvas Area */}
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+
+            {/* React Flow Canvas */}
+            {nodes.length > 0 && (
+              <ReactFlowProvider>
+                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    nodeTypes={nodeTypes}
+                    onNodeClick={handleNodeClick}
+                    fitView
+                  >
+                    <Background />
+                    <Controls />
+                  </ReactFlow>
+
+                  {selectedCourse && (
+                    <CourseDetailPanel
+                      course={selectedCourse}
+                      onClose={() => setSelectedCourse(null)}
+                    />
+                  )}
+                </div>
+              </ReactFlowProvider>
             )}
+
+            {/* Empty State */}
+            {nodes.length === 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                height: '100%', background: '#f5f5f5',
+              }}>
+                <div style={{ textAlign: 'center', color: '#666' }}>
+                  <p style={{ fontSize: '24px', marginBottom: '8px' }}>
+                    {courses.length > 0 ? '🔍 No Matching Courses' : '📚 No Courses Found'}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '14px' }}>
+                    {courses.length > 0
+                      ? 'Try adjusting or clearing your filters'
+                      : "Add courses to your Firestore 'courses' collection to see the curriculum map"}
+                  </p>
+                  {courses.length > 0 && (
+                    <button
+                      onClick={handleClearFilters}
+                      style={{
+                        marginTop: '12px', padding: '8px 16px',
+                        background: '#3498db', color: 'white',
+                        border: 'none', borderRadius: '4px', cursor: 'pointer',
+                      }}
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}
+
     </div>
   );
 }
