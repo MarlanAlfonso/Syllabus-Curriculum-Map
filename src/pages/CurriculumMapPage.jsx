@@ -5,7 +5,7 @@ import { getCourses } from '../services/courseService';
 import { buildGraphData, getFilterOptions } from '../utils/graphDataBuilder';
 import { ReactFlow, Controls, Background, ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import CourseNode from '../components/map/CourseNode';
+import CourseNode from '../components/map/CourseNode'; //Wire the onNodeClick event handler
 import CourseDetailPanel from '../components/map/CourseDetailPanel';
 
 const nodeTypes = { courseNode: CourseNode };
