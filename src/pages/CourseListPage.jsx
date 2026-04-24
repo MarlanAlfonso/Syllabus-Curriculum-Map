@@ -7,6 +7,7 @@ import { getCourses } from '../services/courseService';
 export default function CourseListPage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [disablingCourse, setDisablingCourse] = useState(null);
@@ -18,10 +19,12 @@ export default function CourseListPage() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getCourses();
       setCourses(data);
     } catch (err) {
       console.error('Failed to fetch courses:', err);
+      setError('Failed to load courses. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -39,6 +42,14 @@ export default function CourseListPage() {
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
         <p className="text-gray-500 text-lg">Loading courses...</p>
+      </div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="bg-red-50 border border-red-200 text-red-700 rounded p-6 text-center max-w-md">
+        <p className="text-lg font-medium">{error}</p>
       </div>
     </div>
   );
