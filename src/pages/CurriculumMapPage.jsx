@@ -1,6 +1,6 @@
 // src/pages/CurriculumMapPage.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { getCourses } from '../services/courseService';
 import { buildGraphData, getFilterOptions } from '../utils/graphDataBuilder';
 import { ReactFlow, Controls, Background, ReactFlowProvider } from '@xyflow/react';
@@ -19,8 +19,6 @@ const DEFAULT_FILTERS = {
 
 export default function CurriculumMapPage() {
   const [courses, setCourses] = useState([]);
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -32,47 +30,39 @@ export default function CurriculumMapPage() {
     skills: [],
   });
 
-  useEffect(() => {
-    fetchCourses();
-  }, []);
+  // Derived — no useEffect + setState needed
+  const { nodes, edges } = useMemo(() => {
+    if (courses.length === 0) return { nodes: [], edges: [] };
+    return buildGraphData(courses, filters);
+  }, [courses, filters]);
 
-  useEffect(() => {
-    if (courses.length === 0) return;
-    const { nodes: graphNodes, edges: graphEdges } = buildGraphData(courses, filters);
-    setNodes(graphNodes);
-    setEdges(graphEdges);
-  }, [filters, courses]);
-
-  const fetchCourses = async () => {
+  // Extracted async function — called from ref gate and refresh button
+  const runFetch = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
       const result = await getCourses();
-
       if (!result || result.length === 0) {
         setError('No courses found in Firestore');
         setCourses([]);
-        setNodes([]);
-        setEdges([]);
-        setLoading(false);
-        return;
+      } else {
+        setCourses(result);
+        setFilterOptions(getFilterOptions(result));
       }
-
-      setCourses(result);
-      setFilterOptions(getFilterOptions(result));
-
-      const { nodes: graphNodes, edges: graphEdges } = buildGraphData(result, filters);
-      setNodes(graphNodes);
-      setEdges(graphEdges);
-
-      setLoading(false);
     } catch (err) {
       console.error('Error fetching courses:', err);
       setError(err.message || 'Failed to load curriculum data');
+    } finally {
       setLoading(false);
     }
   };
+
+  // Runs once on first render — no useEffect, no setState in effect body
+  const fetchedRef = useRef(false);
+  if (!fetchedRef.current) {
+    fetchedRef.current = true;
+    runFetch();
+  }
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -108,7 +98,7 @@ export default function CurriculumMapPage() {
             </p>
           </div>
           <button
-            onClick={fetchCourses}
+            onClick={runFetch}
             disabled={loading}
             style={{
               padding: '10px 16px',
@@ -152,7 +142,7 @@ export default function CurriculumMapPage() {
             </p>
           </div>
           <button
-            onClick={fetchCourses}
+            onClick={runFetch}
             style={{
               padding: '8px 16px', background: '#c33', color: 'white',
               border: 'none', borderRadius: '4px', cursor: 'pointer',

@@ -8,7 +8,7 @@ import CurriculumMapPage from "./pages/CurriculumMapPage";
 import AboutPage from "./pages/AboutPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-function App() {
+export function App() {
   return (
     <BrowserRouter>
       <nav className="bg-blue-700 text-white px-6 py-3 flex gap-6">

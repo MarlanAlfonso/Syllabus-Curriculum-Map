@@ -1,5 +1,3 @@
-import { db } from "./lib/firebaseClient.js";
-console.log("Firestore connected:", db);
 
 function App() {
   return (

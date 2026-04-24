@@ -68,8 +68,6 @@ export async function updateCourse(id, updatedFields) {
 }
 
 /**
- * Disable a course (Soft Delete)
- * Sets isActive = false instead of removing the document
  * @param {string} courseId
  */
 export async function disableCourse(courseId) {
