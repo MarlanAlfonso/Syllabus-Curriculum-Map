@@ -130,10 +130,6 @@ export function buildGraphData(courses, filters = {}) {
   return { nodes, edges };
 }
 
-/**
- * Get available unique values for filtering
- * Useful for populating dropdown filters
- */
 export function getFilterOptions(courses) {
   return {
     yearLevels: [...new Set(courses.map(c => c.yearLevel))].sort((a, b) => a - b),
@@ -145,10 +141,6 @@ export function getFilterOptions(courses) {
   };
 }
 
-/**
- * Helper function: Get layout bounds
- * Useful for auto-sizing canvas or debugging
- */
 export function getLayoutBounds(nodes) {
   if (nodes.length === 0) return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0 };
   

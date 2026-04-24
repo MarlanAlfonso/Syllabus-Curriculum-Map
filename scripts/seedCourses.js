@@ -1,3 +1,4 @@
+/* global process */
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import * as dotenv from "dotenv";

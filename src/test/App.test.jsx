@@ -1,13 +1,16 @@
-import { render, screen } from '@testing-library/react';
+// src/test/App.test.jsx
+import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
-import App from '../App'; // Pointing back to your App component
+import App from '../App';
 
 describe('App Component', () => {
   it('renders the application', () => {
-    render(<App />);
-    
-    // This is a basic "smoke test"
-    // It passes if the component renders without crashing
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    );
     expect(true).toBe(true);
   });
 });
