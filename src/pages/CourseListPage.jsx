@@ -1,117 +1,120 @@
-import React, { useState, useEffect } from 'react';
-import AddCourseModal from '../components/AddCourseModal';
-import EditCourseModal from '../components/EditCourseModal';
-import SoftDisableConfirmDialog from '../components/SoftDisableConfirmDialog';
-import { getCourses } from '../services/courseService';
+import { useEffect, useState } from "react";
+import { getCourses, disableCourse, updateCourse } from "../services/courseService";
+import AddCourseModal from "../components/AddCourseModal";
+import EditCourseModal from "../components/EditCourseModal";
 
 export default function CourseListPage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
-  const [disablingCourse, setDisablingCourse] = useState(null);
+
+  async function fetchCourses() {
+    try {
+      const data = await getCourses();
+      setCourses(data);
+    } catch (err) {
+      setError("Failed to load courses.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleToggle(course) {
+    try {
+      if (course.isActive) {
+        await disableCourse(course.id);
+      } else {
+        await updateCourse(course.id, { isActive: true });
+      }
+      fetchCourses();
+    } catch (err) {
+      console.error("Failed to toggle course status", err);
+    }
+  }
 
   useEffect(() => {
     fetchCourses();
   }, []);
 
-  const fetchCourses = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getCourses();
-      setCourses(data);
-    } catch (err) {
-      console.error('Failed to fetch courses:', err);
-      setError('Failed to load courses. Please check your connection and try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCourseAdded = () => fetchCourses();
-  const handleCourseUpdated = () => fetchCourses();
-  const handleCourseDisabled = () => {
-    setDisablingCourse(null);
-    fetchCourses();
-  };
-
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-500 text-lg">Loading courses...</p>
-      </div>
+    <div className="flex justify-center items-center h-64">
+      <div className="text-gray-500 text-lg animate-pulse">Loading courses...</div>
     </div>
   );
 
   if (error) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="bg-red-50 border border-red-200 text-red-700 rounded p-6 text-center max-w-md">
-        <p className="text-lg font-medium">{error}</p>
-      </div>
+    <div className="flex justify-center items-center h-64">
+      <div className="text-red-500 text-lg">{error}</div>
     </div>
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Page Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Courses</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Courses</h1>
         <button
-          onClick={() => setIsAddOpen(true)}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow transition duration-150"
+          onClick={() => setShowAddModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow transition duration-200 min-h-[44px]"
         >
-          + Add New Course
+          + Add Course
         </button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
-        {courses.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <span className="text-5xl mb-4">📭</span>
-            <p className="text-lg font-medium">No courses yet.</p>
-            <p className="text-sm">Click "Add New Course" to create one.</p>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-100">
-              <tr>
-                {['Code', 'Title', 'Units', 'Year', 'Semester', 'Prerequisites', 'Actions'].map(header => (
-                  <th key={header} className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                    {header}
-                  </th>
-                ))}
+      {/* Empty State */}
+      {courses.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+          <span className="text-5xl mb-4">📚</span>
+          <p className="text-lg font-medium">No courses yet</p>
+          <p className="text-sm">Click "Add Course" to get started.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
+          <table className="min-w-full bg-white text-sm">
+            <thead>
+              <tr className="bg-gray-100 text-gray-700 uppercase text-xs tracking-wider">
+                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold">Course Code</th>
+                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold">Course Title</th>
+                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold">Units</th>
+                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold">Year Level</th>
+                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold">Semester</th>
+                <th className="border-b border-gray-200 px-4 py-3 text-center font-semibold">Status</th>
+                <th className="border-b border-gray-200 px-4 py-3 text-center font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody>
               {courses.map((course, index) => (
-                <tr key={course.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{course.courseCode}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{course.courseTitle}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{course.units}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">Year {course.yearLevel}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{course.semester}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
-                    {course.prerequisites && course.prerequisites.length > 0
-                      ? course.prerequisites.join(', ')
-                      : <span className="italic text-gray-400">None</span>}
+                <tr
+                  key={course.id}
+                  className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} ${!course.isActive ? "opacity-50" : ""} hover:bg-blue-50 transition duration-150`}
+                >
+                  <td className="px-4 py-3 border-b border-gray-100 font-medium text-gray-800">{course.courseCode}</td>
+                  <td className="px-4 py-3 border-b border-gray-100 text-gray-700">{course.courseTitle}</td>
+                  <td className="px-4 py-3 border-b border-gray-100 text-gray-700">{course.units}</td>
+                  <td className="px-4 py-3 border-b border-gray-100 text-gray-700">{course.yearLevel}</td>
+                  <td className="px-4 py-3 border-b border-gray-100 text-gray-700">{course.semester}</td>
+                  <td className="px-4 py-3 border-b border-gray-100 text-center">
+                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${course.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {course.isActive ? "Active" : "Disabled"}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex gap-2">
+                  <td className="px-4 py-3 border-b border-gray-100 text-center">
+                    <div className="flex justify-center gap-2">
                       <button
                         onClick={() => setEditingCourse(course)}
-                        className="px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition duration-150 min-h-[36px]"
+                        disabled={!course.isActive}
+                        className={`px-3 py-1.5 rounded text-white text-xs font-medium min-h-[44px] transition duration-200 ${course.isActive ? "bg-blue-500 hover:bg-blue-600 cursor-pointer" : "bg-blue-300 cursor-not-allowed opacity-50"}`}
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => setDisablingCourse(course)}
-                        className="px-3 py-1.5 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition duration-150 min-h-[36px]"
+                        onClick={() => handleToggle(course)}
+                        className={`px-3 py-1.5 rounded text-white text-xs font-medium min-h-[44px] transition duration-200 ${course.isActive ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}`}
                       >
-                        Disable
+                        {course.isActive ? "Disable" : "Enable"}
                       </button>
                     </div>
                   </td>
@@ -119,31 +122,24 @@ export default function CourseListPage() {
               ))}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
 
-      <AddCourseModal
-        isOpen={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-        onCourseAdded={handleCourseAdded}
-        allCourses={courses}
-      />
+      {/* Modals */}
+      {showAddModal && (
+        <AddCourseModal
+          onClose={() => setShowAddModal(false)}
+          onCourseAdded={fetchCourses}
+        />
+      )}
 
-      <EditCourseModal
-        isOpen={editingCourse !== null}
-        onClose={() => setEditingCourse(null)}
-        onCourseUpdated={handleCourseUpdated}
-        course={editingCourse}
-        allCourses={courses}
-      />
-
-      <SoftDisableConfirmDialog
-        isOpen={disablingCourse !== null}
-        onClose={() => setDisablingCourse(null)}
-        onDisabled={handleCourseDisabled}
-        courseId={disablingCourse?.id}
-        courseCode={disablingCourse?.courseCode}
-      />
+      {editingCourse && (
+        <EditCourseModal
+          course={editingCourse}
+          onClose={() => setEditingCourse(null)}
+          onCourseUpdated={fetchCourses}
+        />
+      )}
     </div>
   );
 }

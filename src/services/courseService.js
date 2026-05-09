@@ -1,86 +1,68 @@
-import { db } from "../lib/firebaseClient.js";
+// src/services/courseService.js
+
+import { db } from "../lib/firebaseClient";
 import {
   collection,
   getDocs,
   addDoc,
   updateDoc,
   doc,
-  query,
-  where,
   serverTimestamp,
 } from "firebase/firestore";
 
-const COURSES_COLLECTION = "courses";
-const coursesCollection = collection(db, COURSES_COLLECTION);
+const coursesCollection = collection(db, "courses");
 
-/**
- * Get all active courses
- */
+// ─────────────────────────────────────────────
+// getCourses()
+// Returns ALL courses (active and disabled).
+// Each course object includes its Firestore document id.
+// ─────────────────────────────────────────────
 export async function getCourses() {
-  try {
-    const q = query(coursesCollection, where("isActive", "==", true));
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    }));
-  } catch (err) {
-    console.error("Error fetching courses:", err);
-    throw new Error(`Failed to fetch courses: ${err.message}`);
-  }
+  const snapshot = await getDocs(coursesCollection);
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
+  }));
 }
 
-/**
- * Add a new course
- */
+// ─────────────────────────────────────────────
+// addCourse(courseData)
+// Adds a new course document to Firestore.
+// Automatically sets isActive: true, createdAt, and updatedAt.
+// Returns the new document reference.
+// ─────────────────────────────────────────────
 export async function addCourse(courseData) {
-  try {
-    const docRef = await addDoc(coursesCollection, {
-      ...courseData,
-      isActive: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    return docRef;
-  } catch (err) {
-    console.error("Error adding course:", err);
-    throw new Error(`Failed to add course: ${err.message}`);
-  }
+  const docRef = await addDoc(coursesCollection, {
+    ...courseData,
+    isActive: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return docRef;
 }
 
-/**
- * Update course information
- */
+// ─────────────────────────────────────────────
+// updateCourse(id, updatedFields)
+// Updates only the fields passed in, plus updatedAt.
+// Does NOT overwrite fields that were not passed.
+// ─────────────────────────────────────────────
 export async function updateCourse(id, updatedFields) {
-  try {
-    const courseDoc = doc(db, COURSES_COLLECTION, id);
-
-    await updateDoc(courseDoc, {
-      ...updatedFields,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (err) {
-    console.error("Error updating course:", err);
-    throw new Error(`Failed to update course: ${err.message}`);
-  }
+  const courseDoc = doc(db, "courses", id);
+  await updateDoc(courseDoc, {
+    ...updatedFields,
+    updatedAt: serverTimestamp(),
+  });
 }
 
-/**
- * @param {string} courseId
- */
-export async function disableCourse(courseId) {
-  try {
-    const courseRef = doc(db, COURSES_COLLECTION, courseId);
-
-    await updateDoc(courseRef, {
-      isActive: false,
-      updatedAt: serverTimestamp(),
-    });
-
-  } catch (err) {
-    console.error("Error disabling course:", err);
-    throw new Error(`Failed to disable course: ${err.message}`);
-  }
+// ─────────────────────────────────────────────
+// disableCourse(id)
+// Soft-disables a course by setting isActive: false.
+// The document is NEVER deleted — deleteDoc() is NOT used.
+// ─────────────────────────────────────────────
+export async function disableCourse(id) {
+  const courseDoc = doc(db, "courses", id);
+  await updateDoc(courseDoc, {
+    isActive: false,
+    updatedAt: serverTimestamp(),
+  });
 }

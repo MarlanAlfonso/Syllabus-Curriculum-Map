@@ -21,6 +21,7 @@ export default function SoftDisableConfirmDialog({
       onClose();
     } catch (err) {
       setError(`Failed to disable course: ${err.message}`);
+      console.error('Disable course error:', err);
       setLoading(false);
     }
   };
@@ -33,47 +34,50 @@ export default function SoftDisableConfirmDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      onClick={handleCancel}
+    >
       <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 flex flex-col items-center text-center"
         onClick={e => e.stopPropagation()}
       >
-        {/* Warning Icon & Title */}
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-3xl">⚠️</span>
-          <h3 className="text-xl font-bold text-gray-800">Disable Course?</h3>
-        </div>
+        {/* Warning Icon */}
+        <div className="text-5xl mb-3">⚠️</div>
+
+        {/* Title */}
+        <h3 className="text-xl font-bold text-gray-800 mb-2">Disable Course?</h3>
 
         {/* Message */}
-        <p className="text-gray-600 text-sm mb-2">
-          Are you sure you want to disable{' '}
-          <span className="font-semibold text-gray-900">{courseCode}</span>{' '}
-          from the curriculum map?
+        <p className="text-gray-600 text-sm mb-1">
+          Are you sure you want to disable <strong className="text-gray-800">{courseCode}</strong> from the curriculum map?
         </p>
-        <p className="text-gray-400 text-xs mb-5">
+
+        {/* Subtitle */}
+        <p className="text-gray-400 text-xs mb-4">
           This action can be undone by an administrator.
         </p>
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-300 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
+          <div className="w-full bg-red-50 border border-red-300 text-red-700 text-sm px-4 py-2 rounded-lg mb-4">
             {error}
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-3">
+        {/* Buttons */}
+        <div className="flex gap-3 w-full">
           <button
             onClick={handleCancel}
             disabled={loading}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition duration-150 min-h-[44px] disabled:opacity-60"
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition duration-200 min-h-[44px] disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirmDisable}
             disabled={loading}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition duration-150 min-h-[44px] disabled:opacity-60"
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition duration-200 min-h-[44px] disabled:opacity-60"
           >
             {loading ? 'Disabling...' : 'Confirm Disable'}
           </button>

@@ -8,6 +8,7 @@ export default function AppShell({ children }) {
     { to: "/home", label: "Home" },
     { to: "/courses", label: "Courses" },
     { to: "/map", label: "Curriculum Map" },
+    { to: "/roadmap", label: "Roadmap" },
     { to: "/about", label: "About" },
   ];
 
