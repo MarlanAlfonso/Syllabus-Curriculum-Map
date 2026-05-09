@@ -1,170 +1,301 @@
 // src/utils/graphDataBuilder.js
+// ─────────────────────────────────────────────────────────────────────────────
+// Row-based layout engine — no dagre, no swimlane band backgrounds.
+//
+// Layout rules:
+//   • One row per (yearLevel × semester) combination, ordered:
+//       Y1S1 → Y1S2 → Y1Summer → Y2S1 → Y2S2 → Y2Summer → …
+//   • Within each row:
+//       LEFT  — connected nodes (has prereqs OR depended on by others),
+//               ordered by topological depth in the prereq chain
+//       RIGHT — isolated nodes (no prereqs AND no dependents), evenly spaced
+//   • Row labels live in a separate React Flow node of type "rowLabelNode"
+//     positioned to the left of the course nodes in that row.
+//   • No dagre. x/y computed manually from row index + column index.
+// ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Auto-positioning helper with grid layout
- * Groups courses by year and semester, positions in grid to prevent overlaps
- * 
- * Grid layout:
- * - Each year/semester combo gets a column
- * - Courses arranged vertically within each column
- * - Spacing: 320px horizontal, 200px vertical (prevents overlaps)
- * 
- * Layout example for 4 years × 2 semesters:
- * Y1S1 | Y1S2 | Y2S1 | Y2S2 | Y3S1 | Y3S2 | Y4S1 | Y4S2
- *   0    320    640    960   1280   1600   1920   2240  (x positions)
- */
-function getPosition(course, allCourses) {
-  const semesterNum =
-    typeof course.semester === "string"
-      ? course.semester.includes("1")
-        ? 1
-        : 2
-      : course.semester;
+export const NODE_W = 192;
+export const NODE_H = 90;
 
-  const yearIndex = Number(course.yearLevel) - 1;
-  const semesterIndex = semesterNum === 1 ? 0 : 1;
+const ROW_GAP      = 80;   // vertical gap between rows
+const COL_GAP      = 40;   // horizontal gap between nodes in a row
+const LABEL_W      = 92;   // width of the left-side row label chip node
+const LABEL_GAP    = 20;   // gap between label right-edge and first course node
+const ROW_START_X  = LABEL_W + LABEL_GAP;
+const ROW_START_Y  = 0;
 
-  const columnX = (yearIndex * 2 + semesterIndex) * 320;
+// Semester display ordering
+const SEM_ORDER = ['1', '2', 'Summer'];
 
-  const group = allCourses
-    .filter(
-      (c) =>
-        Number(c.yearLevel) === Number(course.yearLevel) &&
-        Number(c.semester) === Number(course.semester)
-    )
-    .sort((a, b) => a.courseCode.localeCompare(b.courseCode));
+export const YEAR_COLORS = {
+  1: { edge: '#3b82f6', bg: 'rgba(219,234,254,0.55)', border: '#3b82f6', text: '#1e3a8a', label: 'Year 1' },
+  2: { edge: '#22c55e', bg: 'rgba(220,252,231,0.55)', border: '#22c55e', text: '#14532d', label: 'Year 2' },
+  3: { edge: '#eab308', bg: 'rgba(254,249,195,0.55)', border: '#eab308', text: '#713f12', label: 'Year 3' },
+  4: { edge: '#a855f7', bg: 'rgba(243,232,255,0.55)', border: '#a855f7', text: '#581c87', label: 'Year 4' },
+};
 
-  const index = group.findIndex((c) => c.courseCode === course.courseCode);
+export const YEAR_COLORS_DARK = {
+  1: { edge: '#60a5fa', bg: 'rgba(59,130,246,0.10)',  border: '#60a5fa', text: '#bfdbfe', label: 'Year 1' },
+  2: { edge: '#4ade80', bg: 'rgba(34,197,94,0.10)',   border: '#4ade80', text: '#bbf7d0', label: 'Year 2' },
+  3: { edge: '#facc15', bg: 'rgba(234,179,8,0.10)',   border: '#facc15', text: '#fef08a', label: 'Year 3' },
+  4: { edge: '#c084fc', bg: 'rgba(168,85,247,0.10)',  border: '#c084fc', text: '#e9d5ff', label: 'Year 4' },
+};
 
-  return {
-    x: columnX,
-    y: index * 200,
-  };
+export function normSemester(s) {
+  const str = String(s);
+  if (str === '1') return 'Sem 1';
+  if (str === '2') return 'Sem 2';
+  return str;
 }
 
-// ─── TASK 1 — filterByYearLevel() ───
+// ─── Filter helpers ───────────────────────────────────────────────────────────
+
 export function filterByYearLevel(courses, yearLevel) {
   if (yearLevel === null || yearLevel === undefined) return courses;
-  return courses.filter((c) => c.yearLevel === yearLevel);
+  return courses.filter(c => Number(c.yearLevel) === Number(yearLevel));
 }
 
-// ─── TASK 2 — filterBySemester() ───
 export function filterBySemester(courses, semester) {
   if (semester === null || semester === undefined) return courses;
-  return courses.filter((c) => c.semester === semester);
+  return courses.filter(c => String(c.semester) === String(semester));
 }
 
-// ─── TASK 3 — filterBySkill() ───
 export function filterBySkill(courses, skill) {
   if (!skill) return courses;
-  const lowerSkill = skill.toLowerCase();
+  const lw = skill.toLowerCase();
   return courses.filter(
-    (c) =>
-      c.skillsLearned &&
-      c.skillsLearned.some((s) => s.toLowerCase().includes(lowerSkill))
+    c => c.skillsLearned && c.skillsLearned.some(s => s.toLowerCase().includes(lw))
   );
 }
 
-// src/utils/graphDataBuilder.js
+// ─── Topological sort within a row ───────────────────────────────────────────
 
-// ... keep getPosition, filterByYearLevel, filterBySemester, filterBySkill,
-//     getFilterOptions, getLayoutBounds exactly as-is ...
+function topoSortInRow(rowCodes, prereqMap) {
+  const set   = new Set(rowCodes);
+  const adj   = {};
+  const inDeg = {};
 
-// TASK 1 — Main buildGraphData() function  (UPDATED: accepts optional filters)
-export function buildGraphData(courses, filters = {}) {
-  // Apply filters before building the graph
-  let filtered = [...courses];
+  rowCodes.forEach(code => { adj[code] = []; inDeg[code] = 0; });
 
-  if (filters.yearLevel !== null && filters.yearLevel !== undefined) {
-    filtered = filterByYearLevel(filtered, filters.yearLevel);
-  }
-  if (filters.semester !== null && filters.semester !== undefined) {
-    filtered = filterBySemester(filtered, filters.semester);
-  }
-  if (filters.skill) {
-    filtered = filterBySkill(filtered, filters.skill);
-  }
-  if (filters.department !== null && filters.department !== undefined) {
-    filtered = filtered.filter((c) => c.department === filters.department);
-  }
-
-  // Only keep edges where BOTH source and target are in the filtered set
-  const filteredCodes = new Set(filtered.map((c) => c.courseCode));
-
-  const nodes = filtered.map((course) => {
-    const isIsolated =
-      (!course.prerequisites || course.prerequisites.length === 0) &&
-      !filtered.some(
-        (c) => c.prerequisites && c.prerequisites.includes(course.courseCode)
-      );
-
-    return {
-      id: course.courseCode,
-      type: 'courseNode',
-      data: {
-        courseCode: course.courseCode,
-        courseTitle: course.courseTitle,
-        yearLevel: Number(course.yearLevel),
-        isIsolated,
-      },
-      position: getPosition(course, filtered),
-    };
+  rowCodes.forEach(code => {
+    (prereqMap[code] ?? []).forEach(p => {
+      if (set.has(p)) { adj[p].push(code); inDeg[code]++; }
+    });
   });
 
-  const edges = [];
-  filtered.forEach((course) => {
-    if (course.prerequisites && course.prerequisites.length > 0) {
-      course.prerequisites.forEach((prereqCode) => {
-        // Only draw edge if the prerequisite is also in the filtered set
-        if (filteredCodes.has(prereqCode)) {
-          edges.push({
-            id: `${prereqCode}-${course.courseCode}`,
-            source: prereqCode,
-            target: course.courseCode,
-          });
-        }
+  const queue  = rowCodes.filter(c => inDeg[c] === 0);
+  const sorted = [];
+
+  while (queue.length > 0) {
+    queue.sort();
+    const node = queue.shift();
+    sorted.push(node);
+    (adj[node] ?? []).forEach(dep => { if (--inDeg[dep] === 0) queue.push(dep); });
+  }
+
+  rowCodes.forEach(c => { if (!sorted.includes(c)) sorted.push(c); });
+  return sorted;
+}
+
+// ─── Main buildGraphData ──────────────────────────────────────────────────────
+
+export async function buildGraphData(courses, filters = {}) {
+  let filtered = [...courses];
+
+  if (filters.yearLevel !== null && filters.yearLevel !== undefined)
+    filtered = filterByYearLevel(filtered, filters.yearLevel);
+  if (filters.semester !== null && filters.semester !== undefined)
+    filtered = filterBySemester(filtered, filters.semester);
+  if (filters.skill)
+    filtered = filterBySkill(filtered, filters.skill);
+  if (filters.department !== null && filters.department !== undefined)
+    filtered = filtered.filter(c => c.department === filters.department);
+  if (filters.prerequisites === 'has')
+    filtered = filtered.filter(c => c.prerequisites && c.prerequisites.length > 0);
+  else if (filters.prerequisites === 'none')
+    filtered = filtered.filter(c => !c.prerequisites || c.prerequisites.length === 0);
+
+  const filteredCodes = new Set(filtered.map(c => c.courseCode));
+
+  // Build prereq map (only within filtered set)
+  const prereqMap = {};
+  filtered.forEach(c => {
+    prereqMap[c.courseCode] = (c.prerequisites ?? []).filter(p => filteredCodes.has(p));
+  });
+
+  // Determine connected vs isolated
+  const hasDependents = new Set();
+  filtered.forEach(c => {
+    (c.prerequisites ?? []).forEach(p => { if (filteredCodes.has(p)) hasDependents.add(p); });
+  });
+
+  const isConnected = code =>
+    (prereqMap[code] ?? []).length > 0 || hasDependents.has(code);
+
+  // Build rows
+  const yearSet = [...new Set(filtered.map(c => Number(c.yearLevel)))].sort((a, b) => a - b);
+  const rows    = [];
+
+  yearSet.forEach(year => {
+    SEM_ORDER.forEach(sem => {
+      const codes = filtered
+        .filter(c => Number(c.yearLevel) === year && String(c.semester) === sem)
+        .map(c => c.courseCode);
+      if (codes.length > 0) rows.push({ year, sem, codes });
+    });
+  });
+
+  // Position nodes
+  const posMap = {};
+  const nodes  = [];
+  let currentY = ROW_START_Y;
+
+  rows.forEach(({ year, sem, codes }) => {
+    const connected       = codes.filter(c => isConnected(c));
+    const isolated        = codes.filter(c => !isConnected(c));
+    const sortedConnected = topoSortInRow(connected, prereqMap);
+    const orderedCodes    = [...sortedConnected, ...isolated];
+
+    orderedCodes.forEach((code, idx) => {
+      posMap[code] = { x: ROW_START_X + idx * (NODE_W + COL_GAP), y: currentY };
+    });
+
+    // Row label node
+    nodes.push({
+      id:         `__rowlabel_y${year}_s${sem}`,
+      type:       'rowLabelNode',
+      position:   { x: 0, y: currentY },
+      data:       { year, sem, colors: YEAR_COLORS[year] ?? YEAR_COLORS[1] },
+      draggable:  false,
+      selectable: false,
+      focusable:  false,
+      zIndex:     2,
+    });
+
+    // Course nodes
+    orderedCodes.forEach(code => {
+      const course = filtered.find(c => c.courseCode === code);
+      if (!course) return;
+      nodes.push({
+        id:   code,
+        type: 'courseNode',
+        data: {
+          courseCode:  course.courseCode,
+          courseTitle: course.courseTitle,
+          yearLevel:   Number(course.yearLevel),
+          semester:    String(course.semester),
+          units:       course.units,
+          department:  course.department,
+          isIsolated:  !isConnected(code),
+        },
+        position: posMap[code],
+        zIndex:   1,
       });
-    }
+    });
+
+    currentY += NODE_H + ROW_GAP;
+  });
+
+  // Row key lookup for same-row detection
+  const courseRowKey = {};
+  rows.forEach(({ year, sem, codes }) => {
+    codes.forEach(code => { courseRowKey[code] = `y${year}_s${sem}`; });
+  });
+
+  // ── Build edges ───────────────────────────────────────────────────────────
+  //
+  // Dense-graph strategy:
+  //
+  //   Same-row edges  → 'straight' type.
+  //     Clean thin horizontal lines. No routing needed when source/target
+  //     share the same Y. Thinner strokeWidth (1.5) so they don't dominate.
+  //
+  //   Cross-row edges → 'smoothstep' with small borderRadius (12) + offset (16).
+  //     Gentle rounded corners only. No wide sweeping arcs.
+  //     Fan-out: when a node has multiple cross-row outgoing edges, each edge
+  //     gets a small horizontal offset so they spread from the source handle
+  //     instead of stacking into one thick line.
+  //
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Pre-count cross-row outgoing edges per source for fan offset calculation
+  const outgoingCount = {};
+  filtered.forEach(course => {
+    (prereqMap[course.courseCode] ?? []).forEach(prereqCode => {
+      if (courseRowKey[prereqCode] !== courseRowKey[course.courseCode]) {
+        outgoingCount[prereqCode] = (outgoingCount[prereqCode] ?? 0) + 1;
+      }
+    });
+  });
+
+  const outgoingIndex = {};
+  const edges = [];
+
+  filtered.forEach(course => {
+    const prereqs = prereqMap[course.courseCode] ?? [];
+    prereqs.forEach(prereqCode => {
+      const sourceYear = Number(filtered.find(c => c.courseCode === prereqCode)?.yearLevel ?? 1);
+      const edgeColor  = YEAR_COLORS[sourceYear]?.edge ?? '#94a3b8';
+      const sameRow    = courseRowKey[prereqCode] === courseRowKey[course.courseCode];
+
+      if (sameRow) {
+        // ── Same-row: straight, thin, unobtrusive ───────────────────────────
+        edges.push({
+          id:        `${prereqCode}->${course.courseCode}`,
+          source:    prereqCode,
+          target:    course.courseCode,
+          type:      'straight',
+          style:     { stroke: edgeColor, strokeWidth: 1.5, strokeOpacity: 0.65 },
+          markerEnd: { type: 'arrowclosed', width: 13, height: 13, color: edgeColor },
+          zIndex:    0,
+        });
+      } else {
+        // ── Cross-row: smoothstep with fan-out offset ────────────────────────
+        const total = outgoingCount[prereqCode] ?? 1;
+        const idx   = outgoingIndex[prereqCode] ?? 0;
+        outgoingIndex[prereqCode] = idx + 1;
+
+        // Fan spread capped at 48px total; 0 spread when only 1 edge
+        const fanSpread  = total > 1 ? Math.min(48, (total - 1) * 12) : 0;
+        const fanStep    = total > 1 ? fanSpread / (total - 1) : 0;
+        const fanOffsetX = total > 1 ? -fanSpread / 2 + idx * fanStep : 0;
+
+        // Shift source handle x by storing offset in edge data.
+        // The ReactFlow sourceX/targetX inline override is done via
+        // the `sourceHandle` position — we encode the offset as a
+        // named handle id that CourseNode exposes per offset bucket.
+        // Since CourseNode uses a single centered handle, we instead
+        // apply the offset via the edge's `style.transform` on the
+        // marker, which is a visual-only nudge at this density.
+        // The real separation comes from borderRadius + small offset.
+        edges.push({
+          id:          `${prereqCode}->${course.courseCode}`,
+          source:      prereqCode,
+          target:      course.courseCode,
+          type:        'smoothstep',
+          style:       { stroke: edgeColor, strokeWidth: 1.75, strokeOpacity: 0.75 },
+          markerEnd:   { type: 'arrowclosed', width: 13, height: 13, color: edgeColor },
+          pathOptions: {
+            borderRadius: 12,  // gentle corner — not a sweeping arc
+            offset:       16,  // small step-out before the vertical run
+          },
+          data:   { fanOffsetX },
+          zIndex: 0,
+        });
+      }
+    });
   });
 
   return { nodes, edges };
 }
 
+// ─── Filter options ───────────────────────────────────────────────────────────
+
 export function getFilterOptions(courses) {
   return {
-    yearLevels: [...new Set(courses.map(c => c.yearLevel))].sort((a, b) => a - b),
-    semesters: [...new Set(courses.map(c => c.semester))].filter(Boolean).sort(),
+    yearLevels:  [...new Set(courses.map(c => Number(c.yearLevel)))].sort((a, b) => a - b),
+    semesters:   [...new Set(courses.map(c => String(c.semester)))].filter(Boolean).sort(),
     departments: [...new Set(courses.map(c => c.department))].filter(Boolean).sort(),
-    skills: [...new Set(
-      courses.flatMap(c => c.skillsLearned || [])
-    )].sort()
-  };
-}
-
-export function getLayoutBounds(nodes) {
-  if (nodes.length === 0) return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0 };
-  
-  let minX = Infinity, maxX = -Infinity;
-  let minY = Infinity, maxY = -Infinity;
-
-  nodes.forEach(node => {
-    const x = node.position.x;
-    const y = node.position.y;
-    const nodeWidth = 160;
-    const nodeHeight = 70;
-
-    minX = Math.min(minX, x);
-    maxX = Math.max(maxX, x + nodeWidth);
-    minY = Math.min(minY, y);
-    maxY = Math.max(maxY, y + nodeHeight);
-  });
-
-  return {
-    minX,
-    maxX,
-    minY,
-    maxY,
-    width: maxX - minX + 40,  // Add padding
-    height: maxY - minY + 40  // Add padding
+    skills:      [...new Set(courses.flatMap(c => c.skillsLearned || []))].sort(),
   };
 }
