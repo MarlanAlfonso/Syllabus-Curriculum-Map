@@ -20,14 +20,24 @@ export async function getCourses() {
   try {
     const q = query(coursesCollection, where("isActive", "==", true));
     const snapshot = await getDocs(q);
-
-    return snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    }));
+    return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
   } catch (err) {
     console.error("Error fetching courses:", err);
     throw new Error(`Failed to fetch courses: ${err.message}`);
+  }
+}
+
+/**
+ * Get all disabled/archived courses
+ */
+export async function getDisabledCourses() {
+  try {
+    const q = query(coursesCollection, where("isActive", "==", false));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+  } catch (err) {
+    console.error("Error fetching disabled courses:", err);
+    throw new Error(`Failed to fetch disabled courses: ${err.message}`);
   }
 }
 
@@ -42,7 +52,6 @@ export async function addCourse(courseData) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-
     return docRef;
   } catch (err) {
     console.error("Error adding course:", err);
@@ -56,11 +65,7 @@ export async function addCourse(courseData) {
 export async function updateCourse(id, updatedFields) {
   try {
     const courseDoc = doc(db, COURSES_COLLECTION, id);
-
-    await updateDoc(courseDoc, {
-      ...updatedFields,
-      updatedAt: serverTimestamp(),
-    });
+    await updateDoc(courseDoc, { ...updatedFields, updatedAt: serverTimestamp() });
   } catch (err) {
     console.error("Error updating course:", err);
     throw new Error(`Failed to update course: ${err.message}`);
@@ -68,19 +73,27 @@ export async function updateCourse(id, updatedFields) {
 }
 
 /**
- * @param {string} courseId
+ * Archive (soft-disable) a course
  */
 export async function disableCourse(courseId) {
   try {
     const courseRef = doc(db, COURSES_COLLECTION, courseId);
-
-    await updateDoc(courseRef, {
-      isActive: false,
-      updatedAt: serverTimestamp(),
-    });
-
+    await updateDoc(courseRef, { isActive: false, updatedAt: serverTimestamp() });
   } catch (err) {
     console.error("Error disabling course:", err);
     throw new Error(`Failed to disable course: ${err.message}`);
+  }
+}
+
+/**
+ * Restore an archived course
+ */
+export async function enableCourse(courseId) {
+  try {
+    const courseRef = doc(db, COURSES_COLLECTION, courseId);
+    await updateDoc(courseRef, { isActive: true, updatedAt: serverTimestamp() });
+  } catch (err) {
+    console.error("Error enabling course:", err);
+    throw new Error(`Failed to enable course: ${err.message}`);
   }
 }

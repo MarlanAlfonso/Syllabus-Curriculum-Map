@@ -14,7 +14,9 @@
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@xyflow/react": "^12.10.2",
-    "firebase": "^12.11.0",
+    "dagre": "^0.8.5",
+    "firebase": "^12.12.1",
+    "framer-motion": "^12.38.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.2"

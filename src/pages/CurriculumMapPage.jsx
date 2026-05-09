@@ -1,396 +1,581 @@
 // src/pages/CurriculumMapPage.jsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Row-based layout: no dagre, no swimlane band backgrounds.
+// SwimlaneNode is now registered as "rowLabelNode" — renders a left-side chip.
+// TIMELINE: per-row horizontal scroll, no global bottom scrollbar.
+// ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { getCourses } from '../services/courseService';
-import { buildGraphData, getFilterOptions } from '../utils/graphDataBuilder';
-import { ReactFlow, Controls, Background, ReactFlowProvider } from '@xyflow/react';
+import { buildGraphData, getFilterOptions, YEAR_COLORS, YEAR_COLORS_DARK } from '../utils/graphDataBuilder';
+import {
+  ReactFlow, Controls, Background, ReactFlowProvider, useReactFlow,
+} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import CourseNode from '../components/map/CourseNode';
+import CourseNode    from '../components/map/CourseNode';
+import SwimlaneNode  from '../components/map/SwimlaneNode';
 import CourseDetailPanel from '../components/map/CourseDetailPanel';
+import '../styles/CurriculumMapPage.css';
 
-const nodeTypes = { courseNode: CourseNode };
-
-const DEFAULT_FILTERS = {
-  yearLevel: null,
-  semester: null,
-  skill: null,
-  department: null,
+const nodeTypes = {
+  courseNode:    CourseNode,
+  rowLabelNode:  SwimlaneNode,
 };
 
-export default function CurriculumMapPage() {
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [filterOptions, setFilterOptions] = useState({
-    yearLevels: [],
-    semesters: [],
-    departments: [],
-    skills: [],
+const DEFAULT_FILTERS = {
+  yearLevel:     null,
+  semester:      null,
+  skill:         null,
+  department:    null,
+  prerequisites: null,
+};
+
+// ── Dark mode hook ─────────────────────────────────────────────────────────────
+function useIsDark() {
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('scm-dark');
+    if (saved !== null) return saved === 'true';
+    const theme = document.documentElement.getAttribute('data-theme');
+    if (theme === 'dark') return true;
+    if (theme === 'light') return false;
+    return document.documentElement.classList.contains('dark');
   });
 
-  // Derived — no useEffect + setState needed
-  const { nodes, edges } = useMemo(() => {
-    if (courses.length === 0) return { nodes: [], edges: [] };
-    return buildGraphData(courses, filters);
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const saved = localStorage.getItem('scm-dark');
+      if (saved !== null) { setIsDark(saved === 'true'); return; }
+      const theme = document.documentElement.getAttribute('data-theme');
+      if (theme === 'dark')  { setIsDark(true);  return; }
+      if (theme === 'light') { setIsDark(false); return; }
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, {
+      attributes: true, attributeFilter: ['data-theme', 'class'],
+    });
+    const onStorage = e => { if (e.key === 'scm-dark') setIsDark(e.newValue === 'true'); };
+    window.addEventListener('storage', onStorage);
+    return () => { observer.disconnect(); window.removeEventListener('storage', onStorage); };
+  }, []);
+
+  return isDark;
+}
+
+// ── "Has prerequisites" filter includes both ends of edges ────────────────────
+async function buildGraphDataWithConnectedNodes(courses, filters) {
+  if (filters.prerequisites === 'has') {
+    const withPrereqs = courses.filter(c => c.prerequisites && c.prerequisites.length > 0);
+    const prereqCodes = new Set(withPrereqs.flatMap(c => c.prerequisites));
+    const connected   = new Set([...withPrereqs.map(c => c.courseCode), ...prereqCodes]);
+    let filtered = courses.filter(c => connected.has(c.courseCode));
+    const mf = { ...filters, prerequisites: null };
+    if (mf.yearLevel  != null) filtered = filtered.filter(c => Number(c.yearLevel)  === Number(mf.yearLevel));
+    if (mf.semester   != null) filtered = filtered.filter(c => String(c.semester)   === String(mf.semester));
+    if (mf.department != null) filtered = filtered.filter(c => c.department         === mf.department);
+    if (mf.skill)              filtered = filtered.filter(c =>
+      c.skillsLearned?.some(s => s.toLowerCase().includes(mf.skill.toLowerCase()))
+    );
+    return buildGraphData(filtered, { ...mf, prerequisites: null });
+  }
+  return buildGraphData(courses, filters);
+}
+
+// ── FlowCanvas ─────────────────────────────────────────────────────────────────
+function FlowCanvas({ nodes, edges, onNodeClick, selectedCourse, onClosePanel, filters, highlightedNodes }) {
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
+
+  useEffect(() => {
+    const t = setTimeout(() => fitView({ duration: 500, padding: 0.15 }), 80);
+    return () => clearTimeout(t);
+  }, [filters, fitView, nodes.length]);
+
+  useEffect(() => {
+    const handler = e => {
+      if (e.key === '=' || e.key === '+') zoomIn({ duration: 200 });
+      if (e.key === '-')                   zoomOut({ duration: 200 });
+      if (e.key === 'f' || e.key === 'F') fitView({ duration: 400, padding: 0.15 });
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [zoomIn, zoomOut, fitView]);
+
+  const displayNodes = useMemo(() => {
+    if (!highlightedNodes || highlightedNodes.size === 0) return nodes;
+    return nodes.map(n => {
+      if (n.type !== 'courseNode') return n;
+      return { ...n, data: { ...n.data, dimmed: !highlightedNodes.has(n.id) } };
+    });
+  }, [nodes, highlightedNodes]);
+
+  return (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <ReactFlow
+        nodes={displayNodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        onNodeClick={onNodeClick}
+        fitView
+        fitViewOptions={{ padding: 0.15 }}
+        minZoom={0.08}
+        maxZoom={2.5}
+        panOnScroll
+        zoomOnPinch
+        panOnDrag
+        zoomOnScroll
+        edgesFocusable={false}
+        defaultEdgeOptions={{
+          style:    { strokeWidth: 2 },
+          animated: false,
+        }}
+      >
+        <Background color="var(--map-flow-bg-dot)" gap={24} size={1} />
+        <Controls showInteractive={false} />
+      </ReactFlow>
+
+      {selectedCourse && (
+        <CourseDetailPanel course={selectedCourse} onClose={onClosePanel} />
+      )}
+    </div>
+  );
+}
+
+// ── TimelineView ───────────────────────────────────────────────────────────────
+// CHANGED: per-row horizontal scroll. Each row has its own overflow-x:auto strip.
+// The outer .timeline-view only scrolls vertically. No global horizontal scrollbar.
+function TimelineView({ courses, onSelectCourse, isDark }) {
+  const SEM_ORDER = ['1', '2', 'Summer'];
+  const years     = [...new Set(courses.map(c => Number(c.yearLevel)))].sort();
+  const YC        = isDark ? YEAR_COLORS_DARK : YEAR_COLORS;
+  const semLabel  = s => s === 'Summer' ? 'Summer' : `Semester ${s}`;
+
+  const rows = [];
+  years.forEach(y => {
+    SEM_ORDER.forEach(s => {
+      const list = courses.filter(c => Number(c.yearLevel) === y && String(c.semester) === s);
+      if (list.length > 0) rows.push({ year: y, sem: s, courses: list });
+    });
+  });
+
+  return (
+    // CHANGED: overflow-x:hidden on the outer wrapper kills the global bottom scrollbar
+    <div className="timeline-view" style={{ overflowX: 'hidden' }}>
+      {rows.map(({ year, sem, courses: rc }) => {
+        const yc = YC[year] ?? YC[1];
+        return (
+          <div key={`${year}-${sem}`} className="timeline-row">
+            {/* Sticky left label */}
+            <div className="timeline-row-label" style={{ borderLeftColor: yc.border }}>
+              <span className="timeline-year-badge"
+                style={{ background: yc.bg, color: yc.text, borderColor: yc.border }}>
+                Y{year}
+              </span>
+              <span className="timeline-sem-text">{semLabel(sem)}</span>
+              <span className="timeline-count">{rc.length} courses</span>
+            </div>
+
+            {/* CHANGED: wrapper clips the row, cards strip scrolls independently */}
+            <div className="timeline-cards-wrapper">
+              <div className="timeline-cards">
+                {rc.map(c => (
+                  <button key={c.courseCode} className="timeline-card"
+                    style={{ borderTopColor: yc.border }} onClick={() => onSelectCourse(c)}>
+                    <span className="timeline-card-code">{c.courseCode}</span>
+                    <span className="timeline-card-title">{c.courseTitle}</span>
+                    <span className="timeline-card-units">
+                      {c.units} {c.units === 1 ? 'unit' : 'units'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Legend ─────────────────────────────────────────────────────────────────────
+function Legend({ visible, onClose, isDark }) {
+  const YC = isDark ? YEAR_COLORS_DARK : YEAR_COLORS;
+  if (!visible) return null;
+  return (
+    <div className="map-legend">
+      <div className="map-legend-header">
+        <span className="map-legend-title">Legend</span>
+        <button onClick={onClose} className="map-legend-close">×</button>
+      </div>
+      <div className="map-legend-section">
+        <p className="map-legend-label">Year Level</p>
+        {Object.entries(YC).map(([y, c]) => (
+          <div key={y} className="map-legend-row">
+            <span className="map-legend-swatch" style={{ background: c.bg, borderColor: c.border }} />
+            <span style={{ color: c.text, fontWeight: 600 }}>{c.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="map-legend-section">
+        <p className="map-legend-label">Node types</p>
+        <div className="map-legend-row">
+          <span className="map-legend-swatch"
+            style={{ background: 'transparent', borderColor: '#9ca3af', borderStyle: 'dashed' }} />
+          <span>◇ Foundational (no prereqs)</span>
+        </div>
+      </div>
+      <div className="map-legend-section">
+        <p className="map-legend-label">Edge colors</p>
+        {Object.entries(YC).map(([y, c]) => (
+          <div key={`e${y}`} className="map-legend-row">
+            <span className="map-legend-line" style={{ background: c.edge }} />
+            <span>Prereq from {c.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="map-legend-shortcuts">
+        <p className="map-legend-label">Shortcuts</p>
+        <div className="map-legend-row"><kbd>+</kbd><span>Zoom in</span></div>
+        <div className="map-legend-row"><kbd>−</kbd><span>Zoom out</span></div>
+        <div className="map-legend-row"><kbd>F</kbd><span>Fit view</span></div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
+export default function CurriculumMapPage() {
+  const isDark = useIsDark();
+
+  const [courses,        setCourses]        = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [layoutLoading,  setLayoutLoading]  = useState(false);
+  const [error,          setError]          = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [filters,        setFilters]        = useState(DEFAULT_FILTERS);
+  const [filterOptions,  setFilterOptions]  = useState({
+    yearLevels: [], semesters: [], departments: [], skills: [],
+  });
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [activeTab,      setActiveTab]      = useState('graph');
+  const [searchQuery,    setSearchQuery]    = useState('');
+  const [legendVisible,  setLegendVisible]  = useState(false);
+  const [highlightedNodes, setHighlightedNodes] = useState(null);
+  const [graphData,      setGraphData]      = useState({ nodes: [], edges: [] });
+
+  useEffect(() => {
+    if (courses.length === 0) { setGraphData({ nodes: [], edges: [] }); return; }
+    setLayoutLoading(true);
+    buildGraphDataWithConnectedNodes(courses, filters)
+      .then(data  => setGraphData(data))
+      .catch(err  => console.error('Layout error:', err))
+      .finally(() => setLayoutLoading(false));
   }, [courses, filters]);
 
-  // Extracted async function — called from ref gate and refresh button
+  const filteredCourses = useMemo(() => {
+    let list = [...courses];
+    if (filters.yearLevel  != null) list = list.filter(c => Number(c.yearLevel)  === Number(filters.yearLevel));
+    if (filters.semester   != null) list = list.filter(c => String(c.semester)   === String(filters.semester));
+    if (filters.department != null) list = list.filter(c => c.department         === filters.department);
+    if (filters.skill)              list = list.filter(c =>
+      c.skillsLearned?.some(s => s.toLowerCase().includes(filters.skill.toLowerCase())));
+    if (filters.prerequisites === 'has')  list = list.filter(c => c.prerequisites?.length > 0);
+    if (filters.prerequisites === 'none') list = list.filter(c => !c.prerequisites?.length);
+    return list;
+  }, [courses, filters]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) { setHighlightedNodes(null); return; }
+    const q       = searchQuery.toLowerCase();
+    const matched = new Set(
+      courses.filter(c =>
+        c.courseCode?.toLowerCase().includes(q) ||
+        c.courseTitle?.toLowerCase().includes(q)
+      ).map(c => c.courseCode)
+    );
+    setHighlightedNodes(matched.size > 0 ? matched : null);
+  }, [searchQuery, courses]);
+
   const runFetch = async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const result = await getCourses();
-      if (!result || result.length === 0) {
-        setError('No courses found in Firestore');
-        setCourses([]);
-      } else {
-        setCourses(result);
-        setFilterOptions(getFilterOptions(result));
-      }
+      if (!result?.length) { setError('No courses found in Firestore'); setCourses([]); }
+      else { setCourses(result); setFilterOptions(getFilterOptions(result)); }
     } catch (err) {
-      console.error('Error fetching courses:', err);
       setError(err.message || 'Failed to load curriculum data');
     } finally {
       setLoading(false);
     }
   };
 
-  // Runs once on first render — no useEffect, no setState in effect body
   const fetchedRef = useRef(false);
-  if (!fetchedRef.current) {
-    fetchedRef.current = true;
-    runFetch();
-  }
+  if (!fetchedRef.current) { fetchedRef.current = true; runFetch(); }
 
-  const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
+  const handleFilterChange = (key, value) => setFilters(p => ({ ...p, [key]: value }));
+  const handleClearFilters = () => { setFilters(DEFAULT_FILTERS); setFilterDrawerOpen(false); };
+  const handleNodeClick    = useCallback((_, node) => {
+    if (node.type === 'rowLabelNode') return;
+    setSelectedCourse(courses.find(c => c.courseCode === node.id) ?? null);
+  }, [courses]);
+  const handleSelectCourse = useCallback(c => setSelectedCourse(c), []);
 
-  const handleClearFilters = () => {
-    setFilters(DEFAULT_FILTERS);
-  };
+  const hasActiveFilters = Object.values(filters).some(v => v !== null);
+  const graphHasNodes    = graphData.nodes.some(n => n.type === 'courseNode');
 
-  const handleNodeClick = (event, node) => {
-    const course = courses.find((c) => c.courseCode === node.id);
-    setSelectedCourse(course || null);
-  };
-
-  const hasActiveFilters = Object.values(filters).some((v) => v !== null);
+  const filterFields = (
+    <>
+      <div className="filter-field">
+        <span className="filter-label">Year</span>
+        <select className={`filter-select${filters.yearLevel ? ' active' : ''}`}
+          value={filters.yearLevel ?? ''}
+          onChange={e => handleFilterChange('yearLevel', e.target.value ? Number(e.target.value) : null)}>
+          <option value="">All</option>
+          {(filterOptions.yearLevels.length ? filterOptions.yearLevels : [1,2,3,4]).map(y => (
+            <option key={y} value={y}>Year {y}</option>
+          ))}
+        </select>
+      </div>
+      <div className="filter-field">
+        <span className="filter-label">Semester</span>
+        <select className={`filter-select${filters.semester ? ' active' : ''}`}
+          value={filters.semester ?? ''}
+          onChange={e => handleFilterChange('semester', e.target.value || null)}>
+          <option value="">All</option>
+          {(filterOptions.semesters.length ? filterOptions.semesters : ['1','2','Summer']).map(s => (
+            <option key={s} value={s}>
+              {s === '1' ? 'Semester 1' : s === '2' ? 'Semester 2' : 'Summer'}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="filter-field">
+        <span className="filter-label">Department</span>
+        <select className={`filter-select${filters.department ? ' active' : ''}`}
+          value={filters.department ?? ''}
+          onChange={e => handleFilterChange('department', e.target.value || null)}>
+          <option value="">All</option>
+          {filterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
+      <div className="filter-field">
+        <span className="filter-label">Prerequisites</span>
+        <select className={`filter-select${filters.prerequisites ? ' active' : ''}`}
+          value={filters.prerequisites ?? ''}
+          onChange={e => handleFilterChange('prerequisites', e.target.value || null)}>
+          <option value="">All</option>
+          <option value="has">Has prerequisites</option>
+          <option value="none">No prerequisites</option>
+        </select>
+      </div>
+      <div className="filter-field">
+        <span className="filter-label">Skills</span>
+        <input type="text" placeholder="e.g. algorithms"
+          className={`filter-input${filters.skill ? ' active' : ''}`}
+          value={filters.skill ?? ''}
+          onChange={e => handleFilterChange('skill', e.target.value || null)} />
+      </div>
+    </>
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%' }}>
+    <div className="map-page-root" data-dark={isDark ? 'true' : 'false'}>
 
-      {/* Header */}
-      <div style={{
-        padding: '20px',
-        background: '#2c3e50',
-        color: 'white',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        zIndex: 10,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ margin: '0 0 5px 0', fontSize: '24px' }}>Curriculum Map</h1>
-            <p style={{ margin: 0, opacity: 0.9, fontSize: '14px' }}>
-              {courses.length} courses • Prerequisites and dependencies visualized
-            </p>
+      {/* ── Top bar ── */}
+      <div className="map-topbar">
+        <div className="map-topbar-left">
+          <div className="map-topbar-brand">
+            <span className="map-topbar-overline">ACADEMIC</span>
+            <span className="map-topbar-title">Curriculum Map</span>
           </div>
-          <button
-            onClick={runFetch}
-            disabled={loading}
-            style={{
-              padding: '10px 16px',
-              background: '#3498db',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1,
-              fontSize: '14px',
-            }}
-          >
-            {loading ? '⟳ Refreshing...' : '⟳ Refresh'}
+          <span className="map-course-count-pill">{courses.length} courses</span>
+        </div>
+
+        <div className="map-topbar-search-wrap map-topbar-search--desktop">
+          <SearchIcon className="map-search-icon" />
+          <input className="map-search-input" placeholder="Search courses… (code or title)"
+            value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+          {searchQuery && (
+            <button className="map-search-clear" onClick={() => setSearchQuery('')}>×</button>
+          )}
+        </div>
+
+        <div className="map-topbar-right">
+          <div className="map-view-tabs">
+            {[{ id: 'graph', label: 'Graph', icon: '⬡' }, { id: 'timeline', label: 'Timeline', icon: '▤' }].map(tab => (
+              <button key={tab.id}
+                className={`map-view-tab${activeTab === tab.id ? ' active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}>
+                <span className="map-view-tab-icon">{tab.icon}</span>
+                <span className="map-view-tab-label">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="map-topbar-divider" />
+          <button className={`map-btn-icon${hasActiveFilters ? ' active' : ''}`}
+            onClick={() => setFilterDrawerOpen(o => !o)} title="Filters">
+            <FilterIcon />
+            {hasActiveFilters && (
+              <span className="map-filter-badge">
+                {Object.values(filters).filter(v => v !== null).length}
+              </span>
+            )}
+          </button>
+          {activeTab === 'graph' && (
+            <button className={`map-btn-icon${legendVisible ? ' active' : ''}`}
+              onClick={() => setLegendVisible(v => !v)} title="Legend">
+              <LegendIcon />
+            </button>
+          )}
+          <button onClick={runFetch} disabled={loading} className="map-btn-refresh" title="Refresh">
+            <RefreshIcon />
+            <span className="map-btn-refresh-label">{loading ? 'Loading…' : 'Refresh'}</span>
           </button>
         </div>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          height: '100%', background: '#f5f5f5',
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⟳</div>
-            <p style={{ fontSize: '16px', color: '#666' }}>Loading curriculum data...</p>
+      {/* Mobile search */}
+      <div className="map-mobile-search">
+        <SearchIcon className="map-search-icon" />
+        <input className="map-search-input" placeholder="Search courses…"
+          value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+        {searchQuery && <button className="map-search-clear" onClick={() => setSearchQuery('')}>×</button>}
+      </div>
+
+      {/* Filter panel */}
+      {filterDrawerOpen && (
+        <>
+          <div className="map-drawer-backdrop" onClick={() => setFilterDrawerOpen(false)} />
+          <div className="map-filter-panel">
+            <div className="map-filter-panel-header">
+              <span className="map-filter-panel-title">Filters</span>
+              {hasActiveFilters && (
+                <button onClick={handleClearFilters} className="map-filter-clear-btn">Clear all</button>
+              )}
+              <button onClick={() => setFilterDrawerOpen(false)} className="map-filter-close-btn">×</button>
+            </div>
+            <div className="map-filter-panel-body">{filterFields}</div>
           </div>
+        </>
+      )}
+
+      <Legend visible={legendVisible} onClose={() => setLegendVisible(false)} isDark={isDark} />
+
+      {/* Loading */}
+      {(loading || layoutLoading) && (
+        <div className="map-state-center">
+          <div className="map-spinner" />
+          <p className="map-state-text">
+            {loading ? 'Loading curriculum data…' : 'Computing layout…'}
+          </p>
         </div>
       )}
 
-      {/* Error State */}
-      {error && (
-        <div style={{
-          padding: '20px', background: '#fee', borderBottom: '1px solid #fcc',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10,
-        }}>
+      {/* Error */}
+      {!loading && error && (
+        <div className="map-error-bar">
           <div>
-            <p style={{ margin: 0, color: '#c33', fontWeight: 'bold' }}>❌ Error: {error}</p>
-            <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>
-              Check that Firestore collection 'courses' exists and contains data
-            </p>
+            <p className="map-error-title">❌ {error}</p>
+            <p className="map-error-sub">Check that Firestore collection 'courses' exists</p>
           </div>
-          <button
-            onClick={runFetch}
-            style={{
-              padding: '8px 16px', background: '#c33', color: 'white',
-              border: 'none', borderRadius: '4px', cursor: 'pointer',
-              whiteSpace: 'nowrap', marginLeft: '16px',
-            }}
-          >
-            Try Again
-          </button>
+          <button onClick={runFetch} className="map-btn-retry">Try Again</button>
         </div>
       )}
 
-      {/* Main Layout: Sidebar + Canvas */}
-      {!loading && !error && (
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      {/* Views */}
+      {!loading && !layoutLoading && !error && (
+        <div className="map-canvas-wrapper">
 
-          {/* Filter Sidebar */}
-          <div style={{
-            width: '220px',
-            minWidth: '220px',
-            background: '#f8fafc',
-            borderRight: '1px solid #e2e8f0',
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            overflowY: 'auto',
-          }}>
-            <h2 style={{
-              margin: 0, fontSize: '11px', fontWeight: '700',
-              textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748b',
-            }}>
-              Filters
-            </h2>
-
-            {/* Year Level */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{
-                fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: filters.yearLevel ? '#2563eb' : '#64748b',
-                display: 'flex', alignItems: 'center', gap: '6px',
-              }}>
-                Year Level
-                {filters.yearLevel && (
-                  <span style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: '#3b82f6', display: 'inline-block',
-                  }} />
-                )}
-              </label>
-              <select
-                value={filters.yearLevel ?? ''}
-                onChange={(e) => handleFilterChange('yearLevel', e.target.value ? Number(e.target.value) : null)}
-                style={{
-                  padding: '7px 10px', borderRadius: '6px', fontSize: '13px',
-                  background: 'white', outline: 'none', cursor: 'pointer',
-                  border: filters.yearLevel ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                  boxShadow: filters.yearLevel ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
-                }}
-              >
-                <option value="">All</option>
-                {(filterOptions.yearLevels.length > 0 ? filterOptions.yearLevels : [1, 2, 3, 4]).map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Semester */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{
-                fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: filters.semester ? '#2563eb' : '#64748b',
-                display: 'flex', alignItems: 'center', gap: '6px',
-              }}>
-                Semester
-                {filters.semester && (
-                  <span style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: '#3b82f6', display: 'inline-block',
-                  }} />
-                )}
-              </label>
-              <select
-                value={filters.semester ?? ''}
-                onChange={(e) => handleFilterChange('semester', e.target.value || null)}
-                style={{
-                  padding: '7px 10px', borderRadius: '6px', fontSize: '13px',
-                  background: 'white', outline: 'none', cursor: 'pointer',
-                  border: filters.semester ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                  boxShadow: filters.semester ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
-                }}
-              >
-                <option value="">All</option>
-                {(filterOptions.semesters.length > 0 ? filterOptions.semesters : ['1st', '2nd', 'Summer']).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Skills Tag */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{
-                fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: filters.skill ? '#2563eb' : '#64748b',
-                display: 'flex', alignItems: 'center', gap: '6px',
-              }}>
-                Skills Tag
-                {filters.skill && (
-                  <span style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: '#3b82f6', display: 'inline-block',
-                  }} />
-                )}
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. data-structures"
-                value={filters.skill ?? ''}
-                onChange={(e) => handleFilterChange('skill', e.target.value || null)}
-                style={{
-                  padding: '7px 10px', borderRadius: '6px', fontSize: '13px',
-                  background: 'white', outline: 'none',
-                  border: filters.skill ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                  boxShadow: filters.skill ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
-                }}
-              />
-            </div>
-
-            {/* Department */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{
-                fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: filters.department ? '#2563eb' : '#64748b',
-                display: 'flex', alignItems: 'center', gap: '6px',
-              }}>
-                Department
-                {filters.department && (
-                  <span style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: '#3b82f6', display: 'inline-block',
-                  }} />
-                )}
-              </label>
-              <select
-                value={filters.department ?? ''}
-                onChange={(e) => handleFilterChange('department', e.target.value || null)}
-                style={{
-                  padding: '7px 10px', borderRadius: '6px', fontSize: '13px',
-                  background: 'white', outline: 'none', cursor: 'pointer',
-                  border: filters.department ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
-                  boxShadow: filters.department ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
-                }}
-              >
-                <option value="">All</option>
-                {(filterOptions.departments.length > 0 ? filterOptions.departments : ['CS', 'IT', 'IS']).map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Clear Filters Button */}
-            <button
-              onClick={handleClearFilters}
-              disabled={!hasActiveFilters}
-              style={{
-                marginTop: 'auto',
-                padding: '8px 14px',
-                fontSize: '13px',
-                fontWeight: '500',
-                color: hasActiveFilters ? '#374151' : '#9ca3af',
-                background: 'white',
-                border: '1px solid',
-                borderColor: hasActiveFilters ? '#d1d5db' : '#e5e7eb',
-                borderRadius: '6px',
-                cursor: hasActiveFilters ? 'pointer' : 'not-allowed',
-                transition: 'all 0.15s',
-              }}
-            >
-              ✕ Clear Filters
-            </button>
-          </div>
-
-          {/* Canvas Area */}
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-
-            {/* React Flow Canvas */}
-            {nodes.length > 0 && (
+          {activeTab === 'graph' && (
+            graphHasNodes ? (
               <ReactFlowProvider>
-                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                  <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    nodeTypes={nodeTypes}
-                    onNodeClick={handleNodeClick}
-                    fitView
-                  >
-                    <Background />
-                    <Controls />
-                  </ReactFlow>
-
-                  {selectedCourse && (
-                    <CourseDetailPanel
-                      course={selectedCourse}
-                      onClose={() => setSelectedCourse(null)}
-                    />
-                  )}
-                </div>
+                <FlowCanvas
+                  nodes={graphData.nodes}
+                  edges={graphData.edges}
+                  onNodeClick={handleNodeClick}
+                  selectedCourse={selectedCourse}
+                  onClosePanel={() => setSelectedCourse(null)}
+                  filters={filters}
+                  highlightedNodes={highlightedNodes}
+                />
               </ReactFlowProvider>
-            )}
-
-            {/* Empty State */}
-            {nodes.length === 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                height: '100%', background: '#f5f5f5',
-              }}>
-                <div style={{ textAlign: 'center', color: '#666' }}>
-                  <p style={{ fontSize: '24px', marginBottom: '8px' }}>
-                    {courses.length > 0 ? '🔍 No Matching Courses' : '📚 No Courses Found'}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '14px' }}>
-                    {courses.length > 0
-                      ? 'Try adjusting or clearing your filters'
-                      : "Add courses to your Firestore 'courses' collection to see the curriculum map"}
-                  </p>
-                  {courses.length > 0 && (
-                    <button
-                      onClick={handleClearFilters}
-                      style={{
-                        marginTop: '12px', padding: '8px 16px',
-                        background: '#3498db', color: 'white',
-                        border: 'none', borderRadius: '4px', cursor: 'pointer',
-                      }}
-                    >
-                      Clear Filters
-                    </button>
-                  )}
-                </div>
+            ) : (
+              <div className="map-state-center">
+                <p className="map-state-emoji">{courses.length > 0 ? '🔍' : '📚'}</p>
+                <p className="map-state-title">
+                  {courses.length > 0 ? 'No Matching Courses' : 'No Courses Found'}
+                </p>
+                <p className="map-state-text">
+                  {courses.length > 0
+                    ? 'Try adjusting or clearing your filters'
+                    : "Add courses to your Firestore 'courses' collection"}
+                </p>
+                {courses.length > 0 && (
+                  <button onClick={handleClearFilters} className="map-btn-retry"
+                    style={{ marginTop: 16 }}>Clear Filters</button>
+                )}
               </div>
-            )}
+            )
+          )}
 
-          </div>
+          {activeTab === 'timeline' && (
+            filteredCourses.length > 0 ? (
+              <>
+                <TimelineView
+                  courses={filteredCourses}
+                  onSelectCourse={handleSelectCourse}
+                  isDark={isDark}
+                />
+                {selectedCourse && (
+                  <CourseDetailPanel course={selectedCourse}
+                    onClose={() => setSelectedCourse(null)} />
+                )}
+              </>
+            ) : (
+              <div className="map-state-center">
+                <p className="map-state-emoji">🔍</p>
+                <p className="map-state-title">No Matching Courses</p>
+                <button onClick={handleClearFilters} className="map-btn-retry"
+                  style={{ marginTop: 16 }}>Clear Filters</button>
+              </div>
+            )
+          )}
+
         </div>
       )}
-
     </div>
+  );
+}
+
+// ── Icons ──────────────────────────────────────────────────────────────────────
+function SearchIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="8.5" cy="8.5" r="5.5" /><line x1="12.5" y1="12.5" x2="17" y2="17" />
+    </svg>
+  );
+}
+function FilterIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/>
+      <line x1="2" y1="12" x2="14" y2="12"/>
+      <circle cx="5"  cy="4"  r="1.5" fill="currentColor" stroke="none"/>
+      <circle cx="10" cy="8"  r="1.5" fill="currentColor" stroke="none"/>
+      <circle cx="7"  cy="12" r="1.5" fill="currentColor" stroke="none"/>
+    </svg>
+  );
+}
+function LegendIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="2" y="3" width="4" height="4" rx="1"/><rect x="2" y="9" width="4" height="4" rx="1"/>
+      <line x1="9" y1="5" x2="14" y2="5"/><line x1="9" y1="11" x2="14" y2="11"/>
+    </svg>
+  );
+}
+function RefreshIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><polyline points="10,1 10,4 13,4"/>
+    </svg>
   );
 }

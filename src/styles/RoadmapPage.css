@@ -1,0 +1,284 @@
+/* ── RoadmapPage.css ───────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+/* ── Page ──────────────────────────────────────────────────────────────── */
+.rm-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+  background: #f0f4e8;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.rm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 28px 16px;
+  background: white;
+  border-bottom: 1.5px solid #e8e0d0;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+  flex-shrink: 0;
+}
+
+.rm-h-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: #2c1f0e;
+  letter-spacing: -0.3px;
+  margin-bottom: 2px;
+}
+.rm-h-sub {
+  font-size: 12px;
+  color: #7c6a50;
+}
+
+.rm-prog-wrap {
+  flex: 1;
+  max-width: 300px;
+  min-width: 180px;
+}
+.rm-prog-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #7c6a50;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+.rm-prog-track {
+  height: 7px;
+  background: #ddd8ce;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.rm-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c8892b, #4caf72);
+  border-radius: 999px;
+}
+
+/* ── Body: map + panel side-by-side ─────────────────────────────────────── */
+.rm-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* ── Map outer ───────────────────────────────────────────────────────────── */
+.rm-map-outer {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  position: relative;
+  background: #eef5e0;
+}
+
+/* Unit flash toast */
+.rm-flash {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ef4444;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 8px;
+  z-index: 40;
+  box-shadow: 0 4px 14px rgba(239,68,68,0.3);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Side panel ──────────────────────────────────────────────────────────── */
+.rm-panel {
+  width: 340px;
+  flex-shrink: 0;
+  background: white;
+  border-left: 1.5px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rm-panel-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  flex-shrink: 0;
+}
+.rm-panel-yr  { font-size: 10.5px; color: rgba(255,255,255,0.75); text-transform: uppercase; letter-spacing: 0.07em; }
+.rm-panel-sem { font-size: 16px; font-weight: 700; color: white; margin-top: 1px; letter-spacing: -0.2px; }
+
+.rm-unit-badge {
+  background: rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: white;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.rm-close {
+  background: rgba(255,255,255,0.18);
+  border: none;
+  color: white;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.rm-close:hover { background: rgba(255,255,255,0.32); }
+
+/* Stats bar */
+.rm-stats {
+  display: flex;
+  border-bottom: 1px solid #f3f4f6;
+  flex-shrink: 0;
+}
+.rm-stat {
+  flex: 1;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 1px solid #f3f4f6;
+}
+.rm-stat:last-child { border-right: none; }
+.rm-stat-n { font-size: 16px; font-weight: 700; color: #374151; line-height: 1; }
+.rm-stat-l { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+
+/* Course list */
+.rm-courses {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px 8px;
+}
+
+/* Advance row */
+.rm-advance-row {
+  padding: 12px 14px;
+  border-top: 1px solid #f3f4f6;
+  flex-shrink: 0;
+}
+.rm-advance {
+  width: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 0;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: filter 0.15s, transform 0.12s;
+}
+.rm-advance:hover  { filter: brightness(0.9); }
+.rm-advance:active { transform: scale(0.98); }
+
+/* ── Course card buttons ─────────────────────────────────────────────────── */
+.rm-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 13px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+.rm-btn:active { transform: scale(0.97); }
+.rm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.rm-btn-enroll { background: #3b82f6; border: 1.5px solid #3b82f6; color: white; }
+.rm-btn-enroll:hover:not(:disabled) { filter: brightness(0.9); }
+
+.rm-btn-pass { background: #22c55e; border: 1.5px solid #22c55e; color: white; }
+.rm-btn-pass:hover { filter: brightness(0.9); }
+
+.rm-btn-fail { background: white; border: 1.5px solid #ef4444; color: #ef4444; }
+.rm-btn-fail:hover { background: #fff1f1; }
+
+/* ── Loading / error ─────────────────────────────────────────────────────── */
+.rm-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 14px;
+  color: #7c6a50;
+  font-size: 15px;
+}
+
+/* ── Graduation card ─────────────────────────────────────────────────────── */
+.rm-grad-card {
+  background: white;
+  border-radius: 22px;
+  padding: 44px 52px;
+  text-align: center;
+  max-width: 440px;
+  width: 90%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 72px rgba(0,0,0,0.3);
+}
+.rm-grad-cap {
+  font-size: 60px;
+  margin-bottom: 10px;
+  display: block;
+  animation: capBounce 1.6s ease-in-out infinite;
+}
+@keyframes capBounce {
+  0%,100% { transform: translateY(0) rotate(-4deg); }
+  50%      { transform: translateY(-16px) rotate(4deg); }
+}
+.rm-grad-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 38px; font-weight: 900;
+  color: #c8892b; margin: 0 0 4px;
+  letter-spacing: -0.5px;
+}
+.rm-grad-sub {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px; font-weight: 700;
+  color: #2c1f0e; margin: 0 0 14px;
+}
+.rm-grad-msg { font-size: 13px; color: #7c6a50; line-height: 1.6; margin: 0 0 24px; }
+
+.rm-reset-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600;
+  padding: 10px 28px;
+  border-radius: 10px;
+  border: 2px solid #c8892b;
+  background: transparent;
+  color: #c8892b;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.rm-reset-btn:hover { background: #c8892b; color: white; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .rm-body { flex-direction: column; }
+  .rm-panel { width: 100%; border-left: none; border-top: 1.5px solid #e5e7eb; height: 55vh; }
+  .rm-map-outer { flex: none; height: 45vh; }
+  .rm-header { padding: 14px 16px; }
+  .rm-prog-wrap { max-width: 100%; width: 100%; }
+}
