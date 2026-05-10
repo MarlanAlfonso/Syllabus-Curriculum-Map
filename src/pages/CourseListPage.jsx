@@ -1,3 +1,9 @@
+// src/pages/CourseListPage.jsx
+// CHANGES:
+// - Only superadmins see the Archive button. Admins can Restore (from disabled tab) but not Archive.
+// - Disabled tab is hidden for regular users (visible only to admins and superadmins).
+// - All other functionality unchanged.
+
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import AddCourseModal from '../components/AddCourseModal';
@@ -14,7 +20,6 @@ const yearColors = {
   4: { bg: '#ede9fe', text: '#6d28d9', dot: '#a78bfa', darkBg: '#1e1040', darkText: '#c4b5fd' },
 };
 
-// ── Tooltip wrapper ────────────────────────────────────────────────────────
 function Tooltip({ text, children }) {
   const [show, setShow] = useState(false);
   return (
@@ -41,7 +46,6 @@ function Tooltip({ text, children }) {
   );
 }
 
-// ── Dropdown filter ────────────────────────────────────────────────────────
 function FilterDropdown({ label, value, options, onChange, dark }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -65,7 +69,6 @@ function FilterDropdown({ label, value, options, onChange, dark }) {
         color: isActive ? (dark ? '#93c5fd' : '#1d4ed8') : (dark ? '#d1d5db' : '#374151'),
         fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
         whiteSpace: 'nowrap', transition: 'all 0.15s',
-        boxShadow: open ? '0 0 0 3px rgba(147,197,253,0.15)' : 'none',
       }}>
         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: isActive ? '#93c5fd' : (dark ? '#6b7280' : '#9ca3af') }}>
           {label}
@@ -112,9 +115,7 @@ function FilterDropdown({ label, value, options, onChange, dark }) {
   );
 }
 
-// ── Knowledge Details Drawer ───────────────────────────────────────────────
 function KnowledgeDrawer({ course, onClose, dark }) {
-  // Close on Escape key
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
@@ -131,13 +132,10 @@ function KnowledgeDrawer({ course, onClose, dark }) {
 
   return createPortal(
     <>
-      {/* Backdrop */}
       <div onClick={onClose} style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)',
         zIndex: 9998, animation: 'fadeIn 0.2s ease',
       }} />
-
-      {/* Drawer */}
       <div style={{
         position: 'fixed', top: 0, right: 0, height: '100vh', width: 360,
         background: dark ? '#111827' : '#fff',
@@ -147,8 +145,6 @@ function KnowledgeDrawer({ course, onClose, dark }) {
         animation: 'drawerIn 0.25s cubic-bezier(0.34,1.56,0.64,1)',
         fontFamily: "'DM Sans', system-ui, sans-serif",
       }}>
-
-        {/* Header */}
         <div style={{
           padding: '16px 20px', borderBottom: `1px solid ${dark ? '#1f2937' : '#e5e7eb'}`,
           flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
@@ -183,10 +179,7 @@ function KnowledgeDrawer({ course, onClose, dark }) {
           </button>
         </div>
 
-        {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Info grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
               { label: 'Units', value: course.units },
@@ -204,11 +197,8 @@ function KnowledgeDrawer({ course, onClose, dark }) {
             ))}
           </div>
 
-          {/* Prerequisites */}
           <div>
-            <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.07em' }}>
-              Prerequisites
-            </p>
+            <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.07em' }}>Prerequisites</p>
             {course.prerequisites?.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                 {course.prerequisites.map(p => (
@@ -227,22 +217,8 @@ function KnowledgeDrawer({ course, onClose, dark }) {
             )}
           </div>
 
-          {/* Skills Learned */}
-          <div style={{
-            background: dark ? '#0a2e1a' : '#f0fdf4',
-            border: `1px solid ${dark ? '#166534' : '#bbf7d0'}`,
-            borderRadius: 10, padding: '12px 14px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-              <div style={{ width: 18, height: 18, borderRadius: 5, background: dark ? '#14532d' : '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 6l3 3 5-5" stroke="#15803d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: dark ? '#4ade80' : '#15803d', margin: 0 }}>
-                Skills Learned
-              </p>
-            </div>
+          <div style={{ background: dark ? '#0a2e1a' : '#f0fdf4', border: `1px solid ${dark ? '#166534' : '#bbf7d0'}`, borderRadius: 10, padding: '12px 14px' }}>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: dark ? '#4ade80' : '#15803d', margin: '0 0 8px' }}>Skills Learned</p>
             {skills.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                 {skills.map((skill, i) => (
@@ -260,22 +236,8 @@ function KnowledgeDrawer({ course, onClose, dark }) {
             )}
           </div>
 
-          {/* Knowledge Built */}
-          <div style={{
-            background: dark ? '#0c1e3d' : '#eff6ff',
-            border: `1px solid ${dark ? '#1e40af' : '#bfdbfe'}`,
-            borderRadius: 10, padding: '12px 14px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-              <div style={{ width: 18, height: 18, borderRadius: 5, background: dark ? '#1e3a5f' : '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                  <path d="M6 2v8M2 6h8" stroke="#1d4ed8" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </div>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: dark ? '#93c5fd' : '#1d4ed8', margin: 0 }}>
-                Knowledge Built
-              </p>
-            </div>
+          <div style={{ background: dark ? '#0c1e3d' : '#eff6ff', border: `1px solid ${dark ? '#1e40af' : '#bfdbfe'}`, borderRadius: 10, padding: '12px 14px' }}>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: dark ? '#93c5fd' : '#1d4ed8', margin: '0 0 8px' }}>Knowledge Built</p>
             {course.knowledgeBuilt ? (
               <p style={{ fontSize: 12, color: dark ? '#bfdbfe' : '#1e40af', lineHeight: 1.65, margin: 0 }}>
                 {Array.isArray(course.knowledgeBuilt) ? course.knowledgeBuilt.join(', ') : course.knowledgeBuilt}
@@ -291,16 +253,22 @@ function KnowledgeDrawer({ course, onClose, dark }) {
   );
 }
 
-// ── Main page ──────────────────────────────────────────────────────────────
 export default function CourseListPage() {
   const { role } = useAuth();
-  const isAdmin = role === 'admin';
+
+  // ── ROLE CHECKS ──────────────────────────────────────────────────────────
+  const isSuperAdmin = role === 'superadmin';
+  const isAdmin      = role === 'admin';
+  const canWrite     = isSuperAdmin || isAdmin;           // add/edit/detail
+  const canArchive   = isSuperAdmin;                      // only superadmin can archive
+  const canRestore   = isSuperAdmin || isAdmin;           // admin & superadmin can restore
+  const canSeeDisabledTab = isSuperAdmin || isAdmin;      // regular users should NOT see archived tab
 
   const [courses, setCourses] = useState([]);
   const [disabledCourses, setDisabledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'disabled'
+  const [activeTab, setActiveTab] = useState('active');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [disablingCourse, setDisablingCourse] = useState(null);
@@ -312,7 +280,6 @@ export default function CourseListPage() {
   const [sortBy, setSortBy] = useState('default');
   const [visible, setVisible] = useState(false);
 
-  // Detect dark mode from parent app shell
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
   useEffect(() => {
     const obs = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')));
@@ -324,8 +291,7 @@ export default function CourseListPage() {
 
   const fetchAll = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setLoading(true); setError(null);
       const [active, disabled] = await Promise.all([
         getCourses(),
         getDisabledCourses().catch(() => []),
@@ -340,79 +306,54 @@ export default function CourseListPage() {
     }
   };
 
-  const handleCourseAdded = () => fetchAll();
-  const handleCourseUpdated = () => fetchAll();
+  const handleCourseAdded    = () => fetchAll();
+  const handleCourseUpdated  = () => fetchAll();
   const handleCourseDisabled = () => { setDisablingCourse(null); fetchAll(); };
-  const handleEnable = async (course) => {
-    try {
-      await enableCourse(course.id);
-      fetchAll();
-    } catch { /* handle silently */ }
+  const handleEnable         = async (course) => {
+    try { await enableCourse(course.id); fetchAll(); } catch { /* silent */ }
   };
 
   const sourceList = activeTab === 'active' ? courses : disabledCourses;
 
   const filtered = sourceList.filter(c => {
-    const matchSearch =
-      c.courseCode?.toLowerCase().includes(search.toLowerCase()) ||
-      c.courseTitle?.toLowerCase().includes(search.toLowerCase());
-    const matchYear = filterYear === 'All' || String(c.yearLevel) === filterYear;
-    const matchSem = filterSem === 'All' || String(c.semester) === filterSem;
-    const matchPrereq =
-      filterPrereq === 'All' ||
-      (filterPrereq === 'with' && c.prerequisites?.length > 0) ||
-      (filterPrereq === 'none' && (!c.prerequisites || c.prerequisites.length === 0));
+    const matchSearch  = c.courseCode?.toLowerCase().includes(search.toLowerCase()) || c.courseTitle?.toLowerCase().includes(search.toLowerCase());
+    const matchYear    = filterYear   === 'All' || String(c.yearLevel) === filterYear;
+    const matchSem     = filterSem    === 'All' || String(c.semester)  === filterSem;
+    const matchPrereq  =
+      filterPrereq === 'All'  ? true :
+      filterPrereq === 'with' ? c.prerequisites?.length > 0 :
+                                (!c.prerequisites || c.prerequisites.length === 0);
     return matchSearch && matchYear && matchSem && matchPrereq;
   }).sort((a, b) => {
     if (sortBy === 'title') return a.courseTitle?.localeCompare(b.courseTitle);
-    if (sortBy === 'code') return a.courseCode?.localeCompare(b.courseCode);
+    if (sortBy === 'code')  return a.courseCode?.localeCompare(b.courseCode);
     if (sortBy === 'units') return b.units - a.units;
-    // default: year then sem
     const semOrder = { '1': 0, '2': 1, 'Summer': 2 };
     if (a.yearLevel !== b.yearLevel) return a.yearLevel - b.yearLevel;
     return (semOrder[String(a.semester)] ?? 9) - (semOrder[String(b.semester)] ?? 9);
   });
 
   const activeFilters = (filterYear !== 'All' ? 1 : 0) + (filterSem !== 'All' ? 1 : 0) + (filterPrereq !== 'All' ? 1 : 0);
-  const clearFilters = () => { setFilterYear('All'); setFilterSem('All'); setFilterPrereq('All'); setSearch(''); setSortBy('default'); };
+  const clearFilters  = () => { setFilterYear('All'); setFilterSem('All'); setFilterPrereq('All'); setSearch(''); setSortBy('default'); };
 
-  const yearOptions = [
-    { value: 'All', label: 'All years' },
-    { value: '1', label: 'Year 1' }, { value: '2', label: 'Year 2' },
-    { value: '3', label: 'Year 3' }, { value: '4', label: 'Year 4' },
-  ];
-  const semOptions = [
-    { value: 'All', label: 'All semesters' },
-    { value: '1', label: 'Semester 1' }, { value: '2', label: 'Semester 2' }, { value: 'Summer', label: 'Summer' },
-  ];
-  const prereqOptions = [
-    { value: 'All', label: 'All courses' },
-    { value: 'with', label: 'With prerequisites' }, { value: 'none', label: 'No prerequisites' },
-  ];
-  const sortOptions = [
-    { value: 'default', label: 'Year → Semester' },
-    { value: 'title', label: 'Title (A–Z)' },
-    { value: 'code', label: 'Code (A–Z)' },
-    { value: 'units', label: 'Units (High–Low)' },
-  ];
+  const yearOptions  = [{ value: 'All', label: 'All years' }, { value: '1', label: 'Year 1' }, { value: '2', label: 'Year 2' }, { value: '3', label: 'Year 3' }, { value: '4', label: 'Year 4' }];
+  const semOptions   = [{ value: 'All', label: 'All semesters' }, { value: '1', label: 'Semester 1' }, { value: '2', label: 'Semester 2' }, { value: 'Summer', label: 'Summer' }];
+  const prereqOptions= [{ value: 'All', label: 'All courses' }, { value: 'with', label: 'With prerequisites' }, { value: 'none', label: 'No prerequisites' }];
+  const sortOptions  = [{ value: 'default', label: 'Year → Semester' }, { value: 'title', label: 'Title (A–Z)' }, { value: 'code', label: 'Code (A–Z)' }, { value: 'units', label: 'Units (High–Low)' }];
 
-  const bg = dark ? '#0f172a' : '#f9fafb';
-  const cardBg = dark ? '#111827' : '#fff';
-  const border = dark ? '#1f2937' : '#e5e7eb';
-  const textPrimary = dark ? '#f9fafb' : '#111827';
-  const textSecondary = dark ? '#9ca3af' : '#6b7280';
-  const tableHeaderBg = dark ? '#1a2234' : '#f8fafc';
-  const rowHover = dark ? '#1a2234' : '#f8fafc';
-  const filterBg = dark ? '#161f2e' : '#fafafa';
+  const bg           = dark ? '#0f172a' : '#f9fafb';
+  const cardBg       = dark ? '#111827' : '#fff';
+  const border       = dark ? '#1f2937' : '#e5e7eb';
+  const textPrimary  = dark ? '#f9fafb' : '#111827';
+  const textSecondary= dark ? '#9ca3af' : '#6b7280';
+  const tableHeaderBg= dark ? '#1a2234' : '#f8fafc';
+  const rowHover     = dark ? '#1a2234' : '#f8fafc';
+  const filterBg     = dark ? '#161f2e' : '#fafafa';
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', background: bg }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{
-          width: 36, height: 36, border: `2px solid ${dark ? '#1f2937' : '#dbeafe'}`,
-          borderTop: '2px solid #2563eb', borderRadius: '50%', margin: '0 auto 12px',
-          animation: 'spin 0.8s linear infinite',
-        }} />
+        <div style={{ width: 36, height: 36, border: `2px solid ${dark ? '#1f2937' : '#dbeafe'}`, borderTop: '2px solid #2563eb', borderRadius: '50%', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
         <p style={{ fontSize: 13, color: textSecondary, fontFamily: "'DM Sans',system-ui,sans-serif" }}>Loading courses…</p>
       </div>
     </div>
@@ -425,17 +366,13 @@ export default function CourseListPage() {
   );
 
   return (
-    <div style={{
-      maxWidth: 1280, margin: '0 auto', padding: '28px 24px',
-      fontFamily: "'DM Sans', system-ui, sans-serif",
-    }}>
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '28px 24px', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap');
-        @keyframes dropIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes dropIn   { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
         @keyframes drawerIn { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        @keyframes spin { to{transform:rotate(360deg)} }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+        @keyframes spin     { to{transform:rotate(360deg)} }
+        @keyframes fadeUp   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         .cl-row { transition: background 0.12s; }
         .cl-row:hover { background: ${rowHover} !important; }
         .cl-icon-btn { width:30px;height:30px;border-radius:8px;border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;flex-shrink:0; }
@@ -447,41 +384,24 @@ export default function CourseListPage() {
       `}</style>
 
       {/* ── Page header ── */}
-      <div className="anim-in" style={{
-        animationDelay: '0.03s',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 12, flexWrap: 'wrap', marginBottom: 20,
-      }}>
+      <div className="anim-in" style={{ animationDelay: '0.03s', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#2563eb', margin: '0 0 4px' }}>
-            Curriculum Management
-          </p>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#2563eb', margin: '0 0 4px' }}>Curriculum Management</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 style={{ fontSize: 26, fontWeight: 700, color: textPrimary, margin: 0, letterSpacing: '-0.02em' }}>Courses</h1>
-            <span style={{
-              padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 500,
-              background: dark ? '#1f2937' : '#f3f4f6', color: textSecondary,
-            }}>
+            <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 500, background: dark ? '#1f2937' : '#f3f4f6', color: textSecondary }}>
               {courses.length} active
             </span>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {/* Search */}
-          <div className="search-wrap" style={{
-            background: cardBg, border: `1px solid ${border}`,
-            color: textPrimary,
-          }}>
+          <div className="search-wrap" style={{ background: cardBg, border: `1px solid ${border}`, color: textPrimary }}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
               <circle cx="7" cy="7" r="5.5" stroke={textSecondary} strokeWidth="1.4"/>
               <path d="M11.5 11.5l2.5 2.5" stroke={textSecondary} strokeWidth="1.4" strokeLinecap="round"/>
             </svg>
-            <input
-              type="text" placeholder="Search courses…"
-              value={search} onChange={e => setSearch(e.target.value)}
-              style={{ color: textPrimary }}
-            />
+            <input type="text" placeholder="Search courses…" value={search} onChange={e => setSearch(e.target.value)} style={{ color: textPrimary }} />
             {search && (
               <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecondary, padding: 0, display: 'flex' }}>
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -491,36 +411,26 @@ export default function CourseListPage() {
             )}
           </div>
 
-          {/* Export CSV */}
           <button onClick={() => exportToCSV(filtered, `courses-${activeTab}`)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '8px 14px', borderRadius: 10,
-            border: `1px solid ${border}`, background: cardBg,
-            color: textSecondary, fontSize: 13, fontWeight: 600,
-            fontFamily: 'inherit', cursor: 'pointer', transition: 'all 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = '#2563eb'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = border}
-          >
+            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+            borderRadius: 10, border: `1px solid ${border}`, background: cardBg,
+            color: textSecondary, fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+          }}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
               <path d="M8 2v8M5 7l3 3 3-3M3 12h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             Export CSV
           </button>
 
-          {/* Add Course */}
-          {isAdmin && (
+          {/* Add Course — admin & superadmin */}
+          {canWrite && (
             <button onClick={() => setIsAddOpen(true)} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '8px 16px', borderRadius: 10,
-              background: 'linear-gradient(135deg,#1d4ed8,#2563eb)',
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px',
+              borderRadius: 10, background: 'linear-gradient(135deg,#1d4ed8,#2563eb)',
               color: '#fff', border: 'none', fontSize: 13, fontWeight: 600,
-              fontFamily: 'inherit', cursor: 'pointer', transition: 'all 0.15s',
+              fontFamily: 'inherit', cursor: 'pointer',
               boxShadow: '0 2px 10px rgba(37,99,235,0.35)',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,99,235,0.45)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(37,99,235,0.35)'; }}
-            >
+            }}>
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
                 <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
@@ -531,107 +441,68 @@ export default function CourseListPage() {
       </div>
 
       {/* ── Table card ── */}
-      <div className="anim-in" style={{
-        animationDelay: '0.09s',
-        background: cardBg, border: `1px solid ${border}`,
-        borderRadius: 14, overflow: 'hidden',
-      }}>
+      <div className="anim-in" style={{ animationDelay: '0.09s', background: cardBg, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
 
-        {/* ── Tabs ── */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 20px', borderBottom: `1px solid ${border}`,
-          background: dark ? '#161f2e' : '#fafbfc', flexWrap: 'wrap', gap: 8,
-        }}>
+        {/* Tabs — disabled tab hidden for regular users */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderBottom: `1px solid ${border}`, background: dark ? '#161f2e' : '#fafbfc', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', gap: 0 }}>
             {[
-              { key: 'active', label: 'Active Courses', count: courses.length },
-              { key: 'disabled', label: 'Archived', count: disabledCourses.length },
-            ].map(tab => (
-              <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSearch(''); }}
-                style={{
-                  padding: '13px 16px', background: 'none', border: 'none',
-                  borderBottom: activeTab === tab.key ? '2px solid #2563eb' : '2px solid transparent',
-                  color: activeTab === tab.key ? '#2563eb' : textSecondary,
-                  fontSize: 13, fontWeight: activeTab === tab.key ? 700 : 500,
-                  cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                  display: 'flex', alignItems: 'center', gap: 7, marginBottom: -1,
-                }}
-              >
+              { key: 'active', label: 'Active Courses', count: courses.length, visible: true },
+              { key: 'disabled', label: 'Archived', count: disabledCourses.length, visible: canSeeDisabledTab },
+            ].filter(tab => tab.visible).map(tab => (
+              <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSearch(''); }} style={{
+                padding: '13px 16px', background: 'none', border: 'none',
+                borderBottom: activeTab === tab.key ? '2px solid #2563eb' : '2px solid transparent',
+                color: activeTab === tab.key ? '#2563eb' : textSecondary,
+                fontSize: 13, fontWeight: activeTab === tab.key ? 700 : 500,
+                cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 7, marginBottom: -1,
+              }}>
                 {tab.label}
-                <span style={{
-                  padding: '1px 7px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-                  background: activeTab === tab.key ? (dark ? '#1e3a5f' : '#dbeafe') : (dark ? '#1f2937' : '#f3f4f6'),
-                  color: activeTab === tab.key ? '#2563eb' : textSecondary,
-                }}>
+                <span style={{ padding: '1px 7px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: activeTab === tab.key ? (dark ? '#1e3a5f' : '#dbeafe') : (dark ? '#1f2937' : '#f3f4f6'), color: activeTab === tab.key ? '#2563eb' : textSecondary }}>
                   {tab.count}
                 </span>
               </button>
             ))}
           </div>
 
-          {!isAdmin && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              padding: '4px 10px', borderRadius: 7,
-              background: dark ? '#292000' : '#fefce8', border: `1px solid ${dark ? '#854d0e' : '#fde68a'}`,
-              color: dark ? '#fbbf24' : '#92400e', fontSize: 11, fontWeight: 500,
-            }}>
-              <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.4"/>
-                <path d="M7 6v4M7 4.5V5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-              </svg>
-              View only
+          {/* Role notice */}
+          {isAdmin && !isSuperAdmin && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 7, background: dark ? '#292000' : '#fefce8', border: `1px solid ${dark ? '#854d0e' : '#fde68a'}`, color: dark ? '#fbbf24' : '#92400e', fontSize: 11, fontWeight: 500 }}>
+              ✏️ Edit & Restore only — Archive requires Superadmin
+            </span>
+          )}
+          {!canWrite && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 7, background: dark ? '#292000' : '#fefce8', border: `1px solid ${dark ? '#854d0e' : '#fde68a'}`, color: dark ? '#fbbf24' : '#92400e', fontSize: 11, fontWeight: 500 }}>
+              👁️ View only
             </span>
           )}
         </div>
 
-        {/* ── Filter bar ── */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-          padding: '10px 16px', borderBottom: `1px solid ${border}`, background: filterBg,
-        }}>
-          <FilterDropdown label="Year" value={filterYear} options={yearOptions} onChange={setFilterYear} dark={dark} />
+        {/* Filter bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 16px', borderBottom: `1px solid ${border}`, background: filterBg }}>
+          <FilterDropdown label="Year"          value={filterYear}   options={yearOptions}   onChange={setFilterYear}   dark={dark} />
           <div style={{ width: 1, height: 22, background: border }} />
-          <FilterDropdown label="Semester" value={filterSem} options={semOptions} onChange={setFilterSem} dark={dark} />
+          <FilterDropdown label="Semester"      value={filterSem}    options={semOptions}    onChange={setFilterSem}    dark={dark} />
           <div style={{ width: 1, height: 22, background: border }} />
           <FilterDropdown label="Prerequisites" value={filterPrereq} options={prereqOptions} onChange={setFilterPrereq} dark={dark} />
           <div style={{ width: 1, height: 22, background: border }} />
-          <FilterDropdown label="Sort by" value={sortBy} options={sortOptions} onChange={setSortBy} dark={dark} />
-
+          <FilterDropdown label="Sort by"       value={sortBy}       options={sortOptions}   onChange={setSortBy}       dark={dark} />
           {(activeFilters > 0 || search || sortBy !== 'default') && (
-            <button onClick={clearFilters} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '5px 10px', borderRadius: 7,
-              background: dark ? '#3b0f14' : '#fee2e2', color: dark ? '#fca5a5' : '#dc2626',
-              border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            }}>
+            <button onClick={clearFilters} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 7, background: dark ? '#3b0f14' : '#fee2e2', color: dark ? '#fca5a5' : '#dc2626', border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               ✕ Clear
             </button>
           )}
-
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: textSecondary }}>
-            {filtered.length} result{filtered.length !== 1 ? 's' : ''}
-          </span>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: textSecondary }}>{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
-        {/* ── Table / Empty State ── */}
+        {/* Table / Empty */}
         {filtered.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 24px', color: textSecondary }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: 14, marginBottom: 16,
-              background: dark ? '#1f2937' : '#f3f4f6',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke={dark ? '#4b5563' : '#d1d5db'} strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: textSecondary, marginBottom: 4 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
               {search || activeFilters > 0 ? 'No courses match your filters' : activeTab === 'disabled' ? 'No archived courses' : 'No courses yet'}
             </p>
             <p style={{ fontSize: 12, color: dark ? '#4b5563' : '#9ca3af' }}>
-              {search || activeFilters > 0 ? 'Try adjusting your search or filters' : isAdmin ? 'Click "Add New Course" to get started' : 'No courses have been added yet'}
+              {search || activeFilters > 0 ? 'Try adjusting your search or filters' : canWrite ? 'Click "Add New Course" to get started' : 'No courses have been added yet'}
             </p>
           </div>
         ) : (
@@ -640,108 +511,63 @@ export default function CourseListPage() {
               <thead>
                 <tr style={{ background: tableHeaderBg }}>
                   {['Code', 'Title', 'Units', 'Year & Sem', 'Prerequisites', 'Actions'].map(h => (
-                    <th key={h} style={{
-                      padding: '10px 16px', textAlign: h === 'Units' ? 'center' : 'left',
-                      fontSize: 11, fontWeight: 700, color: textSecondary,
-                      letterSpacing: '.07em', textTransform: 'uppercase',
-                      borderBottom: `1px solid ${border}`, whiteSpace: 'nowrap',
-                    }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 16px', textAlign: h === 'Units' ? 'center' : 'left', fontSize: 11, fontWeight: 700, color: textSecondary, letterSpacing: '.07em', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((course, idx) => {
-                  const yc = yearColors[course.yearLevel] || yearColors[1];
-                  const prereqs = course.prerequisites || [];
-                  const isDrawerOpen = drawerCourse?.id === course.id;
+                  const yc          = yearColors[course.yearLevel] || yearColors[1];
+                  const prereqs     = course.prerequisites || [];
+                  const isDrawerOpen= drawerCourse?.id === course.id;
 
                   return (
-                    <tr key={course.id} className="cl-row" style={{
-                      borderBottom: `1px solid ${border}`,
-                      background: isDrawerOpen ? (dark ? '#0c1e3d' : '#f0f7ff') : 'transparent',
-                      animation: `fadeUp 0.3s ease both`,
-                      animationDelay: `${idx * 0.03}s`,
-                    }}>
+                    <tr key={course.id} className="cl-row" style={{ borderBottom: `1px solid ${border}`, background: isDrawerOpen ? (dark ? '#0c1e3d' : '#f0f7ff') : 'transparent', animation: `fadeUp 0.3s ease both`, animationDelay: `${idx * 0.03}s` }}>
 
-                      {/* CODE */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <span style={{
-                          fontFamily: "'DM Mono','Fira Code',monospace",
-                          fontSize: 12, fontWeight: 600, color: textPrimary,
-                          letterSpacing: '0.02em',
-                        }}>
+                        <span style={{ fontFamily: "'DM Mono','Fira Code',monospace", fontSize: 12, fontWeight: 600, color: textPrimary, letterSpacing: '0.02em' }}>
                           {course.courseCode}
                         </span>
                       </td>
 
-                      {/* TITLE */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle', maxWidth: 280 }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: textPrimary, lineHeight: 1.3 }}>
-                          {course.courseTitle}
-                        </span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: textPrimary, lineHeight: 1.3 }}>{course.courseTitle}</span>
                       </td>
 
-                      {/* UNITS */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: textSecondary }}>{course.units}</span>
                       </td>
 
-                      {/* YEAR + SEM combined */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                          background: dark ? yc.darkBg : yc.bg,
-                          color: dark ? yc.darkText : yc.text,
-                          whiteSpace: 'nowrap',
-                        }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: dark ? yc.darkBg : yc.bg, color: dark ? yc.darkText : yc.text, whiteSpace: 'nowrap' }}>
                           <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? yc.darkText : yc.dot, display: 'inline-block', flexShrink: 0 }} />
                           {formatYearSemester(course.yearLevel, course.semester)}
                         </span>
                       </td>
 
-                      {/* PREREQUISITES */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                         {prereqs.length === 0 ? (
                           <span style={{ fontSize: 12, color: dark ? '#4b5563' : '#d1d5db', fontStyle: 'italic' }}>None</span>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap' }}>
                             {prereqs.slice(0, 2).map(p => (
-                              <span key={p} style={{
-                                fontFamily: "'DM Mono','Fira Code',monospace",
-                                fontSize: 11, padding: '2px 7px', borderRadius: 6,
-                                background: dark ? '#1e3a5f' : '#eff6ff',
-                                color: dark ? '#93c5fd' : '#1d4ed8',
-                                border: `1px solid ${dark ? '#1d4ed8' : '#bfdbfe'}`,
-                                fontWeight: 500, whiteSpace: 'nowrap',
-                              }}>{p}</span>
+                              <span key={p} style={{ fontFamily: "'DM Mono','Fira Code',monospace", fontSize: 11, padding: '2px 7px', borderRadius: 6, background: dark ? '#1e3a5f' : '#eff6ff', color: dark ? '#93c5fd' : '#1d4ed8', border: `1px solid ${dark ? '#1d4ed8' : '#bfdbfe'}`, fontWeight: 500, whiteSpace: 'nowrap' }}>{p}</span>
                             ))}
                             {prereqs.length > 2 && (
-                              <span style={{
-                                fontSize: 11, padding: '2px 7px', borderRadius: 999,
-                                background: dark ? '#1f2937' : '#f3f4f6',
-                                color: textSecondary, fontWeight: 600,
-                              }}>+{prereqs.length - 2}</span>
+                              <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 999, background: dark ? '#1f2937' : '#f3f4f6', color: textSecondary, fontWeight: 600 }}>+{prereqs.length - 2}</span>
                             )}
                           </div>
                         )}
                       </td>
-
-                      {/* ACTIONS */}
+                      
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
 
-                          {/* Details */}
+                          {/* Details — everyone */}
                           <Tooltip text="Knowledge Details">
                             <button className="cl-icon-btn"
                               onClick={() => setDrawerCourse(isDrawerOpen ? null : course)}
-                              style={{
-                                background: isDrawerOpen
-                                  ? '#1d4ed8'
-                                  : (dark ? '#1e3a5f' : '#eff6ff'),
-                                color: isDrawerOpen ? '#fff' : (dark ? '#93c5fd' : '#1d4ed8'),
-                                border: `1px solid ${dark ? '#1d4ed8' : '#bfdbfe'}`,
-                              }}>
+                              style={{ background: isDrawerOpen ? '#1d4ed8' : (dark ? '#1e3a5f' : '#eff6ff'), color: isDrawerOpen ? '#fff' : (dark ? '#93c5fd' : '#1d4ed8'), border: `1px solid ${dark ? '#1d4ed8' : '#bfdbfe'}` }}>
                               <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
                                 <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.4"/>
                                 <path d="M7 6v4M7 4.5V5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
@@ -749,49 +575,38 @@ export default function CourseListPage() {
                             </button>
                           </Tooltip>
 
-                          {isAdmin && activeTab === 'active' && (
-                            <>
-                              {/* Edit */}
-                              <Tooltip text="Edit Course">
-                                <button className="cl-icon-btn"
-                                  onClick={() => setEditingCourse(course)}
-                                  style={{
-                                    background: dark ? '#1f2937' : '#f8fafc',
-                                    color: dark ? '#9ca3af' : '#374151',
-                                    border: `1px solid ${border}`,
-                                  }}>
-                                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                                    <path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </button>
-                              </Tooltip>
-
-                              {/* Archive */}
-                              <Tooltip text="Archive Course">
-                                <button className="cl-icon-btn"
-                                  onClick={() => setDisablingCourse(course)}
-                                  style={{
-                                    background: dark ? '#2d0a14' : '#fff1f2',
-                                    color: dark ? '#fca5a5' : '#be123c',
-                                    border: `1px solid ${dark ? '#7f1d1d' : '#fecdd3'}`,
-                                  }}>
-                                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                                    <path d="M2 4h10M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M6 7v3M8 7v3M3 4l.7 7a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9L11 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </button>
-                              </Tooltip>
-                            </>
+                          {/* Edit — admin & superadmin */}
+                          {canWrite && activeTab === 'active' && (
+                            <Tooltip text="Edit Course">
+                              <button className="cl-icon-btn"
+                                onClick={() => setEditingCourse(course)}
+                                style={{ background: dark ? '#1f2937' : '#f8fafc', color: dark ? '#9ca3af' : '#374151', border: `1px solid ${border}` }}>
+                                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                                  <path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            </Tooltip>
                           )}
 
-                          {isAdmin && activeTab === 'disabled' && (
+                          {/* Archive — SUPERADMIN ONLY (only on active tab) */}
+                          {canArchive && activeTab === 'active' && (
+                            <Tooltip text="Archive Course">
+                              <button className="cl-icon-btn"
+                                onClick={() => setDisablingCourse(course)}
+                                style={{ background: dark ? '#2d0a14' : '#fff1f2', color: dark ? '#fca5a5' : '#be123c', border: `1px solid ${dark ? '#7f1d1d' : '#fecdd3'}` }}>
+                                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                                  <path d="M2 4h10M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M6 7v3M8 7v3M3 4l.7 7a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9L11 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            </Tooltip>
+                          )}
+
+                          {/* Restore — ADMIN & SUPERADMIN (only on disabled tab) */}
+                          {canRestore && activeTab === 'disabled' && (
                             <Tooltip text="Restore Course">
                               <button className="cl-icon-btn"
                                 onClick={() => handleEnable(course)}
-                                style={{
-                                  background: dark ? '#0a2e1a' : '#f0fdf4',
-                                  color: dark ? '#86efac' : '#15803d',
-                                  border: `1px solid ${dark ? '#166534' : '#bbf7d0'}`,
-                                }}>
+                                style={{ background: dark ? '#0a2e1a' : '#f0fdf4', color: dark ? '#86efac' : '#15803d', border: `1px solid ${dark ? '#166534' : '#bbf7d0'}` }}>
                                 <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
                                   <path d="M2 7a5 5 0 1 1 1.5 3.6M2 11V7h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
@@ -815,16 +630,18 @@ export default function CourseListPage() {
         </p>
       )}
 
-      {/* Knowledge Drawer */}
       {drawerCourse && <KnowledgeDrawer course={drawerCourse} onClose={() => setDrawerCourse(null)} dark={dark} />}
 
-      {/* Modals */}
-      {isAdmin && (
+      {canWrite && (
         <>
           <AddCourseModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onCourseAdded={handleCourseAdded} allCourses={courses} />
           <EditCourseModal isOpen={editingCourse !== null} onClose={() => setEditingCourse(null)} onCourseUpdated={handleCourseUpdated} course={editingCourse} allCourses={courses} />
-          <SoftDisableConfirmDialog isOpen={disablingCourse !== null} onClose={() => setDisablingCourse(null)} onDisabled={handleCourseDisabled} courseId={disablingCourse?.id} courseCode={disablingCourse?.courseCode} />
         </>
+      )}
+
+      {/* Archive dialog only shown for superadmin */}
+      {canArchive && (
+        <SoftDisableConfirmDialog isOpen={disablingCourse !== null} onClose={() => setDisablingCourse(null)} onDisabled={handleCourseDisabled} courseId={disablingCourse?.id} courseCode={disablingCourse?.courseCode} />
       )}
     </div>
   );

@@ -109,7 +109,6 @@ export function AuthProvider({ children }) {
     const userRole = await upsertUser(firebaseUser);
     setUser(firebaseUser);
     setRole(userRole);
-    console.log("✅ User signed in:", lowerEmail, "Role:", userRole);
   };
 
   const logout = async () => {
@@ -140,7 +139,6 @@ export function AuthProvider({ children }) {
 
     // Listen for auth state changes (for page refresh)
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("onAuthStateChanged triggered, user:", firebaseUser?.email);
       if (!isMounted) return;
       try {
         await handleUserAfterAuth(firebaseUser);
