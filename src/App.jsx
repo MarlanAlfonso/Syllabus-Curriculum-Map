@@ -1,20 +1,14 @@
-// src/App.jsx — ADD the roadmap route (diff shown below)
-// ──────────────────────────────────────────────────────────────────────────────
-// CHANGES from original:
-//   1. Import RoadmapPage
-//   2. Add <Route path="/roadmap" ... /> inside the protected block
-// ──────────────────────────────────────────────────────────────────────────────
-
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import AppShell from "./components/layout/AppShell";
-import LoginPage from "./pages/LoginPage";
-import HomePage from "./pages/HomePage";
-import CourseListPage from "./pages/CourseListPage";
-import CurriculumMapPage from "./pages/CurriculumMapPage";
-import AboutPage from "./pages/AboutPage";
-import RoadmapPage from "./pages/RoadmapPage";   // ← NEW
+import { AuthProvider }      from "./context/AuthContext.jsx";
+import ProtectedRoute        from "./components/ProtectedRoute.jsx";
+import AppShell              from "./components/layout/AppShell";
+import LoginPage             from "./pages/LoginPage";
+import HomePage              from "./pages/HomePage";
+import CourseListPage        from "./pages/CourseListPage";
+import CurriculumMapPage     from "./pages/CurriculumMapPage";
+import AboutPage             from "./pages/AboutPage";
+import RoadmapPage           from "./pages/RoadmapPage";
+import UserManagementPage    from "./pages/UserManagementPage";   // ← ADD
 
 function ProtectedLayout({ children }) {
   return (
@@ -29,20 +23,21 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public */}
-          <Route path="/login" element={<LoginPage />} />
-
-          {/* Protected */}
-          <Route path="/" element={<Navigate to="/home" replace />} />
+          <Route path="/login"   element={<LoginPage />} />
+          <Route path="/"        element={<Navigate to="/home" replace />} />
           <Route path="/home"    element={<ProtectedLayout><HomePage /></ProtectedLayout>} />
           <Route path="/courses" element={<ProtectedLayout><CourseListPage /></ProtectedLayout>} />
           <Route path="/map"     element={<ProtectedLayout><CurriculumMapPage /></ProtectedLayout>} />
+          <Route path="/roadmap" element={<ProtectedLayout><RoadmapPage /></ProtectedLayout>} />
           <Route path="/about"   element={<ProtectedLayout><AboutPage /></ProtectedLayout>} />
 
-          {/* ─── NEW ─────────────────────────────────────────────────────── */}
-          <Route path="/roadmap" element={<ProtectedLayout><RoadmapPage /></ProtectedLayout>} />
+          {/* Admin only */}
+          <Route path="/users" element={
+            <ProtectedRoute adminOnly>
+              <AppShell><UserManagementPage /></AppShell>
+            </ProtectedRoute>
+          } />
 
-          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </BrowserRouter>

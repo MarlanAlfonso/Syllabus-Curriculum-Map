@@ -44,6 +44,14 @@ const NAV_ICONS = {
       <circle cx="8" cy="5" r="0.8" fill="currentColor"/>
     </svg>
   ),
+  "/users": (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/>
+    <path d="M2 13c0-2.8 1.8-4 4-4s4 1.2 4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    <path d="M11 7.5c1.5 0 2.5.8 2.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    <circle cx="11" cy="5" r="1.5" stroke="currentColor" strokeWidth="1.3"/>
+  </svg>
+  ),
 };
 
 export default function AppShell({ children }) {
@@ -69,15 +77,17 @@ export default function AppShell({ children }) {
     document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
   }, [dark]);
 
+    const isAdmin = role === "admin";
+
   const navLinks = [
     { to: "/home",    label: "Dashboard" },
     { to: "/courses", label: "Courses" },
     { to: "/map",     label: "Curriculum Map" },
     { to: "/roadmap", label: "Roadmap" },
+    ...(isAdmin ? [{ to: "/users", label: "Student" }] : []),  // ← ADD
     { to: "/about",   label: "About" },
   ];
 
-  const isAdmin = role === "admin";
 
   return (
     <DarkModeContext.Provider value={{ dark, toggle: () => setDark(d => !d) }}>
@@ -304,11 +314,11 @@ export default function AppShell({ children }) {
               )}
               <div className="min-w-0 flex-1">
                 <p className="user-name text-[13px] font-semibold truncate leading-tight">
-                  {user?.displayName ?? "User"}
+                  {user?.displayName ?? "Student"}
                 </p>
                 <div className="mt-1">
                   <span className={isAdmin ? "role-badge-admin" : "role-badge-user"}>
-                    {isAdmin ? "Admin" : "User"}
+                    {isAdmin ? "Admin" : "Student"}
                   </span>
                 </div>
               </div>
@@ -389,7 +399,7 @@ export default function AppShell({ children }) {
             <div>
               <p className="text-sm font-semibold text-white">{user?.displayName ?? "User"}</p>
               <span className={isAdmin ? "role-badge-admin" : "role-badge-user"}>
-                {isAdmin ? "Admin" : "User"}
+                {isAdmin ? "Admin" : "Student"}
               </span>
             </div>
             <button onClick={logout} className="text-xs text-red-300 font-semibold hover:text-red-200 transition">
