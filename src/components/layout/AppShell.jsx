@@ -44,6 +44,14 @@ const NAV_ICONS = {
       <circle cx="8" cy="5" r="0.8" fill="currentColor"/>
     </svg>
   ),
+  "/users": (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/>
+      <path d="M2 13c0-2.8 1.8-4 4-4s4 1.2 4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <path d="M11 7.5c1.5 0 2.5.8 2.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <circle cx="11" cy="5" r="1.5" stroke="currentColor" strokeWidth="1.3"/>
+    </svg>
+  ),
 };
 
 export default function AppShell({ children }) {
@@ -69,25 +77,34 @@ export default function AppShell({ children }) {
     document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
   }, [dark]);
 
+  // Allow both admin and superadmin to see the Users page
+  const isAdminOrSuper = role === "admin" || role === "superadmin";
+
+  // Determine badge text and style
+  const getRoleBadge = () => {
+    if (role === "superadmin") return { text: "Superadmin", class: "role-badge-admin" };
+    if (role === "admin") return { text: "Admin", class: "role-badge-admin" };
+    return { text: "Student", class: "role-badge-user" };
+  };
+
+  const roleBadge = getRoleBadge();
+
   const navLinks = [
     { to: "/home",    label: "Dashboard" },
     { to: "/courses", label: "Courses" },
     { to: "/map",     label: "Curriculum Map" },
     { to: "/roadmap", label: "Roadmap" },
+    ...(isAdminOrSuper ? [{ to: "/users", label: "Users" }] : []),
     { to: "/about",   label: "About" },
   ];
 
-  const isAdmin = role === "admin";
-
   return (
     <DarkModeContext.Provider value={{ dark, toggle: () => setDark(d => !d) }}>
-      {/* CHANGED: added overflow-x-hidden to the outermost wrapper */}
       <div className={`min-h-screen flex overflow-x-hidden ${dark ? "bg-gray-950" : "bg-gray-50"}`}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
           * { font-family: 'DM Sans', system-ui, sans-serif; }
 
-          /* CHANGED: prevent html/body from ever growing a horizontal scrollbar */
           html, body, #root {
             overflow-x: hidden;
             max-width: 100vw;
@@ -245,7 +262,6 @@ export default function AppShell({ children }) {
 
         {/* ── Sidebar — desktop only ─────────────────────────────────── */}
         <aside className="sidebar hidden md:flex flex-col w-56 min-h-screen flex-shrink-0 sidebar-enter fixed top-0 left-0 bottom-0 z-20">
-
           <div className="sidebar-brand px-5 py-4">
             <p className="brand-title font-bold text-sm tracking-wide">SCM</p>
             <p className="brand-sub text-[11px] mt-0.5">Knowledge Map</p>
@@ -304,11 +320,11 @@ export default function AppShell({ children }) {
               )}
               <div className="min-w-0 flex-1">
                 <p className="user-name text-[13px] font-semibold truncate leading-tight">
-                  {user?.displayName ?? "User"}
+                  {user?.displayName ?? "Student"}
                 </p>
                 <div className="mt-1">
-                  <span className={isAdmin ? "role-badge-admin" : "role-badge-user"}>
-                    {isAdmin ? "Admin" : "User"}
+                  <span className={roleBadge.class}>
+                    {roleBadge.text}
                   </span>
                 </div>
               </div>
@@ -388,8 +404,8 @@ export default function AppShell({ children }) {
           <div className="flex items-center justify-between py-3">
             <div>
               <p className="text-sm font-semibold text-white">{user?.displayName ?? "User"}</p>
-              <span className={isAdmin ? "role-badge-admin" : "role-badge-user"}>
-                {isAdmin ? "Admin" : "User"}
+              <span className={roleBadge.class}>
+                {roleBadge.text}
               </span>
             </div>
             <button onClick={logout} className="text-xs text-red-300 font-semibold hover:text-red-200 transition">
@@ -399,16 +415,11 @@ export default function AppShell({ children }) {
         </div>
 
         {/* ── Main content ─────────────────────────────────────────── */}
-        {/* CHANGED: removed overflow-auto from <main> — it was creating its own
-            scroll context and bypassing the overflow-x:hidden on the wrapper.
-            overflow-hidden on the wrapper + per-row scroll in CurriculumMapPage
-            handles everything correctly now. */}
         <div className="main-content flex-1 md:ml-56 pt-[52px] md:pt-0 min-h-screen overflow-x-hidden">
           <main key={location.pathname} className="flex-1 page-enter">
             {children}
           </main>
         </div>
-
       </div>
     </DarkModeContext.Provider>
   );

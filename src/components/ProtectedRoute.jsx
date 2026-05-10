@@ -2,9 +2,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 
-// Usage:
-//   <ProtectedRoute>            → any logged-in user
-//   <ProtectedRoute adminOnly>  → admins only
 export default function ProtectedRoute({ children, adminOnly = false }) {
   const { user, role, authLoading } = useAuth();
 
@@ -18,7 +15,8 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (adminOnly && role !== "admin") {
+  // Allow both 'admin' and 'superadmin' to access admin routes
+  if (adminOnly && role !== "admin" && role !== "superadmin") {
     return <Navigate to="/courses" replace />;
   }
 
