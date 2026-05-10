@@ -1,9 +1,4 @@
 // src/pages/CourseListPage.jsx
-// CHANGES:
-// - Only superadmins see the Archive button. Admins can Restore (from disabled tab) but not Archive.
-// - Disabled tab is hidden for regular users (visible only to admins and superadmins).
-// - All other functionality unchanged.
-
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import AddCourseModal from '../components/AddCourseModal';
@@ -259,10 +254,10 @@ export default function CourseListPage() {
   // ── ROLE CHECKS ──────────────────────────────────────────────────────────
   const isSuperAdmin = role === 'superadmin';
   const isAdmin      = role === 'admin';
-  const canWrite     = isSuperAdmin || isAdmin;           // add/edit/detail
-  const canArchive   = isSuperAdmin;                      // only superadmin can archive
-  const canRestore   = isSuperAdmin || isAdmin;           // admin & superadmin can restore
-  const canSeeDisabledTab = isSuperAdmin || isAdmin;      // regular users should NOT see archived tab
+  const canWrite     = isSuperAdmin || isAdmin;           
+  const canArchive   = isSuperAdmin || isAdmin;           
+  const canRestore   = isSuperAdmin || isAdmin;       
+  const canSeeDisabledTab = isSuperAdmin || isAdmin;     
 
   const [courses, setCourses] = useState([]);
   const [disabledCourses, setDisabledCourses] = useState([]);
@@ -279,6 +274,10 @@ export default function CourseListPage() {
   const [filterPrereq, setFilterPrereq] = useState('All');
   const [sortBy, setSortBy] = useState('default');
   const [visible, setVisible] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
   useEffect(() => {
@@ -315,6 +314,7 @@ export default function CourseListPage() {
 
   const sourceList = activeTab === 'active' ? courses : disabledCourses;
 
+  // Filter and sort
   const filtered = sourceList.filter(c => {
     const matchSearch  = c.courseCode?.toLowerCase().includes(search.toLowerCase()) || c.courseTitle?.toLowerCase().includes(search.toLowerCase());
     const matchYear    = filterYear   === 'All' || String(c.yearLevel) === filterYear;
@@ -332,6 +332,16 @@ export default function CourseListPage() {
     if (a.yearLevel !== b.yearLevel) return a.yearLevel - b.yearLevel;
     return (semOrder[String(a.semester)] ?? 9) - (semOrder[String(b.semester)] ?? 9);
   });
+
+  // Reset to first page when filters, search, or tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, search, filterYear, filterSem, filterPrereq, sortBy]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedCourses = filtered.slice(startIndex, startIndex + itemsPerPage);
 
   const activeFilters = (filterYear !== 'All' ? 1 : 0) + (filterSem !== 'All' ? 1 : 0) + (filterPrereq !== 'All' ? 1 : 0);
   const clearFilters  = () => { setFilterYear('All'); setFilterSem('All'); setFilterPrereq('All'); setSearch(''); setSortBy('default'); };
@@ -381,6 +391,33 @@ export default function CourseListPage() {
         .search-wrap { display:flex;align-items:center;gap:8px;border-radius:10px;padding:0 12px;height:38px;width:220px;transition:border-color 0.2s,box-shadow 0.2s; }
         .search-wrap:focus-within { box-shadow:0 0 0 3px rgba(147,197,253,0.2); }
         .search-wrap input { border:none;outline:none;font-size:13px;background:transparent;width:100%;font-family:inherit; }
+        
+        /* Pagination styles */
+        .pagination-btn {
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          background: ${cardBg};
+          border: 1px solid ${border};
+          color: ${textSecondary};
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .pagination-btn:hover:not(:disabled) {
+          background: ${dark ? '#1f2937' : '#f3f4f6'};
+          border-color: #2563eb;
+          color: #2563eb;
+        }
+        .pagination-btn.active {
+          background: #2563eb;
+          border-color: #2563eb;
+          color: white;
+        }
+        .pagination-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
       `}</style>
 
       {/* ── Page header ── */}
@@ -468,7 +505,7 @@ export default function CourseListPage() {
           {/* Role notice */}
           {isAdmin && !isSuperAdmin && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 7, background: dark ? '#292000' : '#fefce8', border: `1px solid ${dark ? '#854d0e' : '#fde68a'}`, color: dark ? '#fbbf24' : '#92400e', fontSize: 11, fontWeight: 500 }}>
-              ✏️ Edit & Restore only — Archive requires Superadmin
+              ✏️ Edit, Archive & Restore
             </span>
           )}
           {!canWrite && (
@@ -495,7 +532,7 @@ export default function CourseListPage() {
           <span style={{ marginLeft: 'auto', fontSize: 12, color: textSecondary }}>{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
-        {/* Table / Empty */}
+        {/* Table / Empty with pagination */}
         {filtered.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 24px', color: textSecondary }}>
             <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
@@ -506,127 +543,179 @@ export default function CourseListPage() {
             </p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: tableHeaderBg }}>
-                  {['Code', 'Title', 'Units', 'Year & Sem', 'Prerequisites', 'Actions'].map(h => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: h === 'Units' ? 'center' : 'left', fontSize: 11, fontWeight: 700, color: textSecondary, letterSpacing: '.07em', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((course, idx) => {
-                  const yc          = yearColors[course.yearLevel] || yearColors[1];
-                  const prereqs     = course.prerequisites || [];
-                  const isDrawerOpen= drawerCourse?.id === course.id;
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: tableHeaderBg }}>
+                    {['Code', 'Title', 'Units', 'Year & Sem', 'Prerequisites', 'Actions'].map(h => (
+                      <th key={h} style={{ padding: '10px 16px', textAlign: h === 'Units' ? 'center' : 'left', fontSize: 11, fontWeight: 700, color: textSecondary, letterSpacing: '.07em', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedCourses.map((course, idx) => {
+                    const yc          = yearColors[course.yearLevel] || yearColors[1];
+                    const prereqs     = course.prerequisites || [];
+                    const isDrawerOpen= drawerCourse?.id === course.id;
 
-                  return (
-                    <tr key={course.id} className="cl-row" style={{ borderBottom: `1px solid ${border}`, background: isDrawerOpen ? (dark ? '#0c1e3d' : '#f0f7ff') : 'transparent', animation: `fadeUp 0.3s ease both`, animationDelay: `${idx * 0.03}s` }}>
+                    return (
+                      <tr key={course.id} className="cl-row" style={{ borderBottom: `1px solid ${border}`, background: isDrawerOpen ? (dark ? '#0c1e3d' : '#f0f7ff') : 'transparent', animation: `fadeUp 0.3s ease both`, animationDelay: `${idx * 0.03}s` }}>
 
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <span style={{ fontFamily: "'DM Mono','Fira Code',monospace", fontSize: 12, fontWeight: 600, color: textPrimary, letterSpacing: '0.02em' }}>
-                          {course.courseCode}
-                        </span>
-                      </td>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
+                          <span style={{ fontFamily: "'DM Mono','Fira Code',monospace", fontSize: 12, fontWeight: 600, color: textPrimary, letterSpacing: '0.02em' }}>
+                            {course.courseCode}
+                          </span>
+                        </td>
 
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', maxWidth: 280 }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: textPrimary, lineHeight: 1.3 }}>{course.courseTitle}</span>
-                      </td>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle', maxWidth: 280 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: textPrimary, lineHeight: 1.3 }}>{course.courseTitle}</span>
+                        </td>
 
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: textSecondary }}>{course.units}</span>
-                      </td>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: textSecondary }}>{course.units}</span>
+                        </td>
 
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: dark ? yc.darkBg : yc.bg, color: dark ? yc.darkText : yc.text, whiteSpace: 'nowrap' }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? yc.darkText : yc.dot, display: 'inline-block', flexShrink: 0 }} />
-                          {formatYearSemester(course.yearLevel, course.semester)}
-                        </span>
-                      </td>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: dark ? yc.darkBg : yc.bg, color: dark ? yc.darkText : yc.text, whiteSpace: 'nowrap' }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: dark ? yc.darkText : yc.dot, display: 'inline-block', flexShrink: 0 }} />
+                            {formatYearSemester(course.yearLevel, course.semester)}
+                          </span>
+                        </td>
 
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        {prereqs.length === 0 ? (
-                          <span style={{ fontSize: 12, color: dark ? '#4b5563' : '#d1d5db', fontStyle: 'italic' }}>None</span>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap' }}>
-                            {prereqs.slice(0, 2).map(p => (
-                              <span key={p} style={{ fontFamily: "'DM Mono','Fira Code',monospace", fontSize: 11, padding: '2px 7px', borderRadius: 6, background: dark ? '#1e3a5f' : '#eff6ff', color: dark ? '#93c5fd' : '#1d4ed8', border: `1px solid ${dark ? '#1d4ed8' : '#bfdbfe'}`, fontWeight: 500, whiteSpace: 'nowrap' }}>{p}</span>
-                            ))}
-                            {prereqs.length > 2 && (
-                              <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 999, background: dark ? '#1f2937' : '#f3f4f6', color: textSecondary, fontWeight: 600 }}>+{prereqs.length - 2}</span>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
+                          {prereqs.length === 0 ? (
+                            <span style={{ fontSize: 12, color: dark ? '#4b5563' : '#d1d5db', fontStyle: 'italic' }}>None</span>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap' }}>
+                              {prereqs.slice(0, 2).map(p => (
+                                <span key={p} style={{ fontFamily: "'DM Mono','Fira Code',monospace", fontSize: 11, padding: '2px 7px', borderRadius: 6, background: dark ? '#1e3a5f' : '#eff6ff', color: dark ? '#93c5fd' : '#1d4ed8', border: `1px solid ${dark ? '#1d4ed8' : '#bfdbfe'}`, fontWeight: 500, whiteSpace: 'nowrap' }}>{p}</span>
+                              ))}
+                              {prereqs.length > 2 && (
+                                <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 999, background: dark ? '#1f2937' : '#f3f4f6', color: textSecondary, fontWeight: 600 }}>+{prereqs.length - 2}</span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
+                          <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+
+                            {/* Details — everyone */}
+                            <Tooltip text="Knowledge Details">
+                              <button className="cl-icon-btn"
+                                onClick={() => setDrawerCourse(isDrawerOpen ? null : course)}
+                                style={{ background: isDrawerOpen ? '#1d4ed8' : (dark ? '#1e3a5f' : '#eff6ff'), color: isDrawerOpen ? '#fff' : (dark ? '#93c5fd' : '#1d4ed8'), border: `1px solid ${dark ? '#1d4ed8' : '#bfdbfe'}` }}>
+                                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                                  <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.4"/>
+                                  <path d="M7 6v4M7 4.5V5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                                </svg>
+                              </button>
+                            </Tooltip>
+
+                            {/* Edit — admin & superadmin */}
+                            {canWrite && activeTab === 'active' && (
+                              <Tooltip text="Edit Course">
+                                <button className="cl-icon-btn"
+                                  onClick={() => setEditingCourse(course)}
+                                  style={{ background: dark ? '#1f2937' : '#f8fafc', color: dark ? '#9ca3af' : '#374151', border: `1px solid ${border}` }}>
+                                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                                    <path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </button>
+                              </Tooltip>
+                            )}
+
+                            {/* Archive — admin & superadmin (only on active tab) */}
+                            {canArchive && activeTab === 'active' && (
+                              <Tooltip text="Archive Course">
+                                <button className="cl-icon-btn"
+                                  onClick={() => setDisablingCourse(course)}
+                                  style={{ background: dark ? '#2d0a14' : '#fff1f2', color: dark ? '#fca5a5' : '#be123c', border: `1px solid ${dark ? '#7f1d1d' : '#fecdd3'}` }}>
+                                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                                    <path d="M2 4h10M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M6 7v3M8 7v3M3 4l.7 7a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9L11 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </button>
+                              </Tooltip>
+                            )}
+
+                            {/* Restore — admin & superadmin (only on disabled tab) */}
+                            {canRestore && activeTab === 'disabled' && (
+                              <Tooltip text="Restore Course">
+                                <button className="cl-icon-btn"
+                                  onClick={() => handleEnable(course)}
+                                  style={{ background: dark ? '#0a2e1a' : '#f0fdf4', color: dark ? '#86efac' : '#15803d', border: `1px solid ${dark ? '#166534' : '#bbf7d0'}` }}>
+                                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                                    <path d="M2 7a5 5 0 1 1 1.5 3.6M2 11V7h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </button>
+                              </Tooltip>
                             )}
                           </div>
-                        )}
-                      </td>
-                      
-                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                          {/* Details — everyone */}
-                          <Tooltip text="Knowledge Details">
-                            <button className="cl-icon-btn"
-                              onClick={() => setDrawerCourse(isDrawerOpen ? null : course)}
-                              style={{ background: isDrawerOpen ? '#1d4ed8' : (dark ? '#1e3a5f' : '#eff6ff'), color: isDrawerOpen ? '#fff' : (dark ? '#93c5fd' : '#1d4ed8'), border: `1px solid ${dark ? '#1d4ed8' : '#bfdbfe'}` }}>
-                              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                                <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.4"/>
-                                <path d="M7 6v4M7 4.5V5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                              </svg>
-                            </button>
-                          </Tooltip>
-
-                          {/* Edit — admin & superadmin */}
-                          {canWrite && activeTab === 'active' && (
-                            <Tooltip text="Edit Course">
-                              <button className="cl-icon-btn"
-                                onClick={() => setEditingCourse(course)}
-                                style={{ background: dark ? '#1f2937' : '#f8fafc', color: dark ? '#9ca3af' : '#374151', border: `1px solid ${border}` }}>
-                                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                                  <path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </button>
-                            </Tooltip>
-                          )}
-
-                          {/* Archive — SUPERADMIN ONLY (only on active tab) */}
-                          {canArchive && activeTab === 'active' && (
-                            <Tooltip text="Archive Course">
-                              <button className="cl-icon-btn"
-                                onClick={() => setDisablingCourse(course)}
-                                style={{ background: dark ? '#2d0a14' : '#fff1f2', color: dark ? '#fca5a5' : '#be123c', border: `1px solid ${dark ? '#7f1d1d' : '#fecdd3'}` }}>
-                                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                                  <path d="M2 4h10M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M6 7v3M8 7v3M3 4l.7 7a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9L11 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </button>
-                            </Tooltip>
-                          )}
-
-                          {/* Restore — ADMIN & SUPERADMIN (only on disabled tab) */}
-                          {canRestore && activeTab === 'disabled' && (
-                            <Tooltip text="Restore Course">
-                              <button className="cl-icon-btn"
-                                onClick={() => handleEnable(course)}
-                                style={{ background: dark ? '#0a2e1a' : '#f0fdf4', color: dark ? '#86efac' : '#15803d', border: `1px solid ${dark ? '#166534' : '#bbf7d0'}` }}>
-                                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                                  <path d="M2 7a5 5 0 1 1 1.5 3.6M2 11V7h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </button>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                flexWrap: 'wrap', gap: 12, padding: '12px 20px',
+                borderTop: `1px solid ${border}`, background: filterBg,
+              }}>
+                <div style={{ fontSize: 13, color: textSecondary }}>
+                  Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, filtered.length)} of {filtered.length} courses
+                </div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    className="pagination-btn"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
+                        onClick={() => setCurrentPage(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  <button
+                    className="pagination-btn"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {filtered.length > 0 && (
         <p className="anim-in" style={{ animationDelay: '0.15s', fontSize: 11, color: textSecondary, marginTop: 10, paddingLeft: 2 }}>
-          Showing {filtered.length} of {sourceList.length} course{sourceList.length !== 1 ? 's' : ''}
+          Showing {paginatedCourses.length} of {filtered.length} course{filtered.length !== 1 ? 's' : ''} on page {currentPage} of {totalPages}
         </p>
       )}
 
@@ -639,7 +728,7 @@ export default function CourseListPage() {
         </>
       )}
 
-      {/* Archive dialog only shown for superadmin */}
+      {/* Archive dialog */}
       {canArchive && (
         <SoftDisableConfirmDialog isOpen={disablingCourse !== null} onClose={() => setDisablingCourse(null)} onDisabled={handleCourseDisabled} courseId={disablingCourse?.id} courseCode={disablingCourse?.courseCode} />
       )}
