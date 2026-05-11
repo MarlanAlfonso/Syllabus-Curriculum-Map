@@ -4,9 +4,9 @@
 **Status:** ✅ COMPLETED  
 **Team:** Alfonso (SM), Hernandez (Dev), Militar (UI/UX), Florendo (QA)
 
-## 1. Completed Tasks (T-036 to T-047)
+## 1. Completed Tasks (Sprint 4)
 | ID | Task Description | Status |
-|----|------------------|--------|
+|:---|:---|:---|
 | T-036 | Finalize Course Service Logic & CRUD Polish | Completed |
 | T-037 | Complete KM Conceptual Report Sections 3–6 | Completed |
 | T-038 | Refine Map Filter Sidebar & Visual Indicators | Completed |
@@ -21,42 +21,48 @@
 | T-047 | Final Participation Audit & Project Closure | Completed |
 
 ## 2. Blocked / Carried Over
-* **T-043, T-044, T-045:** These tasks were successfully completed but experienced a 48-hour delay (blocked) while waiting for the stability of the production environment (T-039).
-* **T-046:** Execution was blocked until the final regression data (T-045) was available to ensure the Failure Analysis was based on real production results.
+* **Infrastructure Dependency:** T-043 (UI Polish), T-044 (Walkthrough), and T-045 (Regression) were blocked until T-039 (Firebase Deployment) was completed to ensure all testing occurred on the live production URL.
+* **Sequential Documentation:** T-046 (Failure Analysis) was blocked pending the results of T-045, as regression failures provided the primary data for the analysis.
 
 ## 3. PR Summary (Sprint 4)
 * **#95:** Configure Firebase Hosting and deploy production build
 * **#96:** Update Firestore security rules for production
+* **#97:** Complete KM Conceptual Report (Sections 1–6)
 * **#98:** Add 4 Architecture Decision Records in /docs/adr/
-* **#99:** Final code cleanup and removal of dead code
+* **#99:** Final code cleanup (remove console.logs, unused imports)
 * **#100:** Execute full 20-case regression on production URL
-* **#101:** Mobile responsive fixes and loading states
+* **#101:** Mobile responsiveness fixes and loading states
 * **#102:** Final Failure Analysis Report
 * **#103:** Usability walkthrough notes and production screenshots
 
-## 4. Final Gate Status
-* **Production URL:** [Insert Live URL Here] — Accessible and verified.
-* **Regression Testing:** All 20 Test Cases (TC-001 to TC-020) passed on the live build.
-* **Security Audit:** Zero instances of `deleteDoc()` found in the codebase; soft-delete integrity confirmed.
-* **KM Deliverable:** Conceptual Report finalized in `/docs/`.
-* **Design Rationale:** UI/UX documentation finalized in `/docs/`.
-* **Failure Analysis:** Report documenting 5+ major/critical bugs finalized in `/docs/`.
-* **ADR History:** 4+ entries recorded in `/docs/adr/` documenting major tech stack choices.
-* **GitHub Wiki:** User Manual and Contribution Log pages are public and complete.
-* **Participation:** All 4 members met the 3+ Commits and 3+ PRs academic requirement.
+## 4. Bugs / Issues Closed (T-047 Cleanup)
+| Issue | Note | Resolution |
+|:---|:---|:---|
+| #90 (T-043) | UI/UX inconsistencies on mobile | Fixed via Tailwind responsive breakpoints in PR #101 |
+| #88 (T-041) | Documentation gap for tech stack choices | Resolved with ADRs added to /docs/adr/ |
+| #52 (TC-009) | Year level filter not updating map nodes | Logic corrected in graphDataBuilder.js |
+| #XX (Security) | Potential for accidental data deletion | Audit confirmed no `deleteDoc()` calls; implemented Soft-Delete |
 
-## 5. Retrospective Notes
+## 5. Final Gate Status
+* **[PASS] Live URL:** Firebase Hosting is active, SSL secured, and accessible.
+* **[PASS] QA Regression:** All 20 Test Cases (TC-001 to TC-020) verified PASS on production build.
+* **[PASS] Code Integrity:** No `deleteDoc()` found on courses collection (Soft-delete only).
+* **[PASS] Deliverables:** KM Report, Design Rationale, and Failure Analysis committed to `/docs/`.
+* **[PASS] ADRs:** 4+ Architecture Decision Records documented in `/docs/adr/`.
+* **[PASS] Wiki:** User Manual and Contribution Log finalized on GitHub Wiki.
+* **[PASS] Readiness:** Presentation slides committed; 4 members meet 3+ commits/PRs requirement.
+
+## 6. Retrospective Notes
 
 ### What went well across the whole project?
-The modular approach to the **graphDataBuilder** utility allowed the team to separate data logic from visualization. This made the transition from Sprint 2 (Table View) to Sprint 3 (Graph View) much smoother than anticipated. Additionally, early adoption of a Soft-Delete strategy prevented data loss during testing.
+The team successfully implemented a complex interactive curriculum map using React Flow and Firebase. The decision to prioritize a **Soft-Delete** strategy early on ensured data integrity throughout the testing phases. The use of a centralized **graphDataBuilder** utility allowed for seamless filtering without re-fetching data from Firestore.
 
 ### What would we do differently?
-If starting over, we would implement **TypeScript** from Sprint 1. Many minor bugs discovered in Sprint 3 were related to data types (Strings vs Numbers) that TypeScript would have flagged immediately during development. We would also set up a **CI/CD pipeline** earlier to avoid deployment bottlenecks in the final week.
+If starting over, we would implement **TypeScript** from the beginning. Many Sprint 3 logic errors regarding prerequisite IDs would have been caught during development rather than testing. Additionally, we would set up an automated **CI/CD pipeline** in Sprint 1 to avoid the deployment bottlenecks encountered in the final week.
 
 ### What was the hardest part?
-* **Technical:** Managing the complex state of the React Flow canvas, especially ensuring that edges (arrows) rendered correctly across different browser engines in the production build.
-* **Team:** Coordinating the massive documentation push in Sprint 4. Balancing the technical deployment with the academic writing requirements was the most significant time-management challenge.
+* **Technical:** Synchronizing the state of the React Flow canvas with complex sidebar filters (Year, Semester, and Skills) while maintaining high performance.
+* **Team:** Coordinating the massive documentation push required for the M-12 Final Review. Balancing the technical deployment with academic report-writing was a significant time-management challenge.
 
 ---
-**Final Approval:**
-*Alfonso, Marlan — Scrum Master* *April 26, 2026*
+**Final Approval:** *Alfonso, Marlan — Scrum Master*
