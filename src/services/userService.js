@@ -1,15 +1,19 @@
 import {
-  collection, getDocs, doc, setDoc,
-  deleteDoc, getDoc,
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  deleteDoc,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../lib/firebaseClient";
 
 // ── Get all users ─────────────────────────────────────────────────────────
 export async function getAllUsers() {
   const snapshot = await getDocs(collection(db, "users"));
-  const users = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const users = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
   return users.sort((a, b) => {
-    const da  = a.lastLogin?.toDate?.() ?? new Date(a.lastLogin ?? 0);
+    const da = a.lastLogin?.toDate?.() ?? new Date(a.lastLogin ?? 0);
     const db_ = b.lastLogin?.toDate?.() ?? new Date(b.lastLogin ?? 0);
     return db_ - da;
   });
@@ -19,7 +23,7 @@ export async function getAllUsers() {
 export async function getUserRole(email) {
   const userSnap = await getDoc(doc(db, "users", email));
   if (!userSnap.exists()) return null;
-  return userSnap.data().role || "user";
+  return userSnap.data().role || "student";
 }
 
 // ── Upsert user on login ──────────────────────────────────────────────────
@@ -31,17 +35,19 @@ export async function upsertUser(firebaseUser) {
 
   const profileData = {
     displayName: firebaseUser.displayName || "",
-    photoURL:    firebaseUser.photoURL    || "",
-    uid:         firebaseUser.uid,
-    lastLogin:   now,
+    photoURL: firebaseUser.photoURL || "",
+    uid: firebaseUser.uid,
+    lastLogin: now,
   };
 
   if (userSnap.exists()) {
+    // Returning user — keep existing role, just update profile
     await setDoc(userRef, profileData, { merge: true });
   } else {
+    // First-time login — create document with role "student"
     await setDoc(userRef, {
       email,
-      role:      "user",
+      role: "student",
       isBlocked: false,
       createdAt: now,
       ...profileData,
@@ -58,30 +64,32 @@ export async function promoteToAdmin(email) {
   );
 }
 
-// ── Demote to user ────────────────────────────────────────────────────────
+// ── Demote back to student ────────────────────────────────────────────────
 export async function demoteFromAdmin(email) {
   await setDoc(
     doc(db, "users", email),
-    { role: "user", updatedAt: new Date() },
+    { role: "student", updatedAt: new Date() },
     { merge: true }
   );
 }
 
 // ── Add admin by email ────────────────────────────────────────────────────
 export async function addAdminByEmail(email) {
-  const userRef  = doc(db, "users", email);
+  const userRef = doc(db, "users", email);
   const userSnap = await getDoc(userRef);
   if (userSnap.exists()) {
+    // Existing user — upgrade to admin
     await setDoc(userRef, { role: "admin", updatedAt: new Date() }, { merge: true });
   } else {
+    // Pre-create the document so it's ready when they first log in
     await setDoc(userRef, {
       email,
-      role:        "admin",
-      isBlocked:   false,
-      createdAt:   new Date(),
+      role: "admin",
+      isBlocked: false,
+      createdAt: new Date(),
       displayName: "",
-      photoURL:    "",
-      uid:         "",
+      photoURL: "",
+      uid: "",
     });
   }
 }

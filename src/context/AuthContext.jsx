@@ -33,22 +33,23 @@ export function AuthProvider({ children }) {
     try {
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
+        // First-time login — create document with role "student"
         await setDoc(userRef, {
           email,
-          role: "user",
+          role: "student",
           isBlocked: false,
           createdAt: new Date(),
           ...profileData,
         });
-        return "user";
+        return "student";
       } else {
-        // Update profile, keep existing role
+        // Returning user — update profile fields, keep existing role
         await setDoc(userRef, profileData, { merge: true });
-        return userSnap.data().role || "user";
+        return userSnap.data().role || "student";
       }
     } catch (err) {
       console.error("Firestore upsert error:", err);
-      return "user";
+      return "student";
     }
   };
 
@@ -61,11 +62,16 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error("Popup sign-in error:", err);
       // If popup fails (e.g., blocked), fallback to redirect
-      if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
+      if (
+        err.code === "auth/popup-blocked" ||
+        err.code === "auth/cancelled-popup-request"
+      ) {
         try {
           await signInWithRedirect(auth, googleProvider);
         } catch (redirectErr) {
-          setAuthError("Redirect sign-in failed. Please check your browser settings.");
+          setAuthError(
+            "Redirect sign-in failed. Please check your browser settings."
+          );
         }
       } else {
         setAuthError("Sign-in failed: " + err.message);
@@ -96,7 +102,9 @@ export function AuthProvider({ children }) {
       const userDoc = await getDoc(doc(db, "users", lowerEmail));
       if (userDoc.exists() && userDoc.data().isBlocked === true) {
         await signOut(auth);
-        setAuthError("Your account has been blocked. Contact an administrator.");
+        setAuthError(
+          "Your account has been blocked. Contact an administrator."
+        );
         setUser(null);
         setRole(null);
         return;
