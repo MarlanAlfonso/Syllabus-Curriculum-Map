@@ -116,46 +116,46 @@ function Avatar({ user, size = 36 }) {
   );
 }
 
-// ---------- Confirm Dialog (solid background) ----------
+// ---------- Confirm Dialog ----------
 function ConfirmDialog({ isOpen, onClose, onConfirm, user, action, loading, dark }) {
   if (!isOpen || !user) return null;
 
   const configs = {
-    promote: { 
-      color: "#1d4ed8", 
-      label: "Promote to Admin", 
-      icon: <IconShield />, 
+    promote: {
+      color: "#1d4ed8",
+      label: "Promote to Admin",
+      icon: <IconShield />,
       title: "Promote User",
       message: `${user.displayName || user.email} will gain full admin privileges. They will be able to manage courses, users, and system settings.`,
       confirmText: "Promote",
-      hint: "This action can be reversed later."
+      hint: "This action can be reversed later.",
     },
-    demote: { 
-      color: "#dc2626", 
-      label: "Remove Admin", 
-      icon: <IconUser />, 
+    demote: {
+      color: "#dc2626",
+      label: "Remove Admin",
+      icon: <IconUser />,
       title: "Remove Admin Privileges",
       message: `${user.displayName || user.email} will lose all admin access and become a regular student.`,
       confirmText: "Remove",
-      hint: "This action can be reversed by promoting again."
+      hint: "This action can be reversed by promoting again.",
     },
-    block: { 
-      color: "#f59e0b", 
-      label: "Block User", 
-      icon: <IconBan />, 
+    block: {
+      color: "#f59e0b",
+      label: "Block User",
+      icon: <IconBan />,
       title: "Block User Account",
       message: `${user.displayName || user.email} will be unable to sign in. All their data remains intact.`,
       confirmText: "Block",
-      hint: "You can unblock them later."
+      hint: "You can unblock them later.",
     },
-    unblock: { 
-      color: "#22c55e", 
-      label: "Unblock User", 
-      icon: <IconCheck />, 
+    unblock: {
+      color: "#22c55e",
+      label: "Unblock User",
+      icon: <IconCheck />,
       title: "Unblock User Account",
       message: `${user.displayName || user.email} will be able to sign in again.`,
       confirmText: "Unblock",
-      hint: "Their account will be restored to normal."
+      hint: "Their account will be restored to normal.",
     },
   };
   const cfg = configs[action] || configs.promote;
@@ -166,7 +166,7 @@ function ConfirmDialog({ isOpen, onClose, onConfirm, user, action, loading, dark
         position: "fixed",
         inset: 0,
         zIndex: 60,
-        background: "rgba(0, 0, 0, 0.5)", // semi-transparent backdrop
+        background: "rgba(0, 0, 0, 0.5)",
         backdropFilter: "blur(2px)",
         display: "flex",
         alignItems: "center",
@@ -186,7 +186,7 @@ function ConfirmDialog({ isOpen, onClose, onConfirm, user, action, loading, dark
           animation: "um-scaleIn 0.2s cubic-bezier(0.34,1.2,0.64,1)",
         }}
       >
-        {/* Header with icon and title */}
+        {/* Header */}
         <div
           style={{
             padding: "20px 24px 12px",
@@ -265,7 +265,7 @@ function ConfirmDialog({ isOpen, onClose, onConfirm, user, action, loading, dark
           <Avatar user={user} size={40} />
           <div>
             <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: dark ? "#f1f5f9" : "#0f172a" }}>
-              {user.displayName || user.email.split('@')[0]}
+              {user.displayName || user.email.split("@")[0]}
             </p>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: dark ? "#94a3b8" : "#64748b" }}>
               {user.email}
@@ -339,7 +339,7 @@ function ConfirmDialog({ isOpen, onClose, onConfirm, user, action, loading, dark
   );
 }
 
-// ---------- Add Admin Modal (solid background) ----------
+// ---------- Add Admin Modal ----------
 function AddAdminModal({ isOpen, onClose, onAdded, dark }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -449,7 +449,9 @@ function AddAdminModal({ isOpen, onClose, onAdded, dark }) {
 
         <div style={{ padding: "20px 24px" }}>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: dark ? "#cbd5e1" : "#334155" }}>
-            Enter a <strong>@neu.edu.ph</strong> email address. If the user hasn't logged in before, they will be created with admin privileges. If they already exist, their role will be upgraded to admin.
+            Enter a <strong>@neu.edu.ph</strong> email address. If the user hasn't logged in before,
+            they will be created with admin privileges. If they already exist, their role will be
+            upgraded to admin.
           </p>
 
           {error && (
@@ -502,6 +504,7 @@ function AddAdminModal({ isOpen, onClose, onAdded, dark }) {
                 color: dark ? "#f1f5f9" : "#0f172a",
                 outline: "none",
                 transition: "border-color 0.15s",
+                boxSizing: "border-box",
               }}
               onFocus={(e) => (e.target.style.borderColor = "#7c3aed")}
               onBlur={(e) => {
@@ -575,7 +578,9 @@ export default function UserManagementPage() {
 
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   useEffect(() => {
-    const obs = new MutationObserver(() => setDark(document.documentElement.classList.contains("dark")));
+    const obs = new MutationObserver(() =>
+      setDark(document.documentElement.classList.contains("dark"))
+    );
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => obs.disconnect();
   }, []);
@@ -628,8 +633,9 @@ export default function UserManagementPage() {
       return {
         canPromote: false,
         canDemote: false,
-        canBlock: targetRole === "user" && !targetBlocked,
-        canUnblock: targetRole === "user" && targetBlocked,
+        // Admins can only block/unblock students
+        canBlock: targetRole === "student" && !targetBlocked,
+        canUnblock: targetRole === "student" && targetBlocked,
       };
     }
 
@@ -674,30 +680,31 @@ export default function UserManagementPage() {
 
   const filtered = users
     .filter((u) => {
-        // Admin can only see regular student accounts (role === "user")
-        // and blocked students (which are also role === "user" with isBlocked true)
-        if (role === "admin" && (u.role === "admin" || u.role === "superadmin")) {
+      // Admin can only see student accounts, not other admins or superadmins
+      if (role === "admin" && (u.role === "admin" || u.role === "superadmin")) {
         return false;
-        }
-        const q = search.toLowerCase();
-        const matchSearch = u.email?.toLowerCase().includes(q) || u.displayName?.toLowerCase().includes(q);
-        const matchRole =
+      }
+      const q = search.toLowerCase();
+      const matchSearch =
+        u.email?.toLowerCase().includes(q) || u.displayName?.toLowerCase().includes(q);
+      const matchRole =
         filterRole === "all"
-            ? true
-            : filterRole === "superadmin"
-            ? u.role === "superadmin"
-            : filterRole === "admin"
-            ? u.role === "admin"
-            : filterRole === "blocked"
-            ? u.isBlocked
-            : u.role === "user";
-        return matchSearch && matchRole;
+          ? true
+          : filterRole === "superadmin"
+          ? u.role === "superadmin"
+          : filterRole === "admin"
+          ? u.role === "admin"
+          : filterRole === "blocked"
+          ? u.isBlocked
+          : u.role === "student"; // "student" filter tab
+      return matchSearch && matchRole;
     })
     .sort((a, b) => {
       if (sortBy === "name") return (a.displayName || "").localeCompare(b.displayName || "");
       if (sortBy === "email") return a.email.localeCompare(b.email);
       if (sortBy === "role") {
-        const order = { superadmin: 0, admin: 1, user: 2 };
+        // superadmin → admin → student
+        const order = { superadmin: 0, admin: 1, student: 2 };
         return (order[a.role] ?? 3) - (order[b.role] ?? 3);
       }
       const da = a.lastLogin?.toDate?.() ?? new Date(a.lastLogin ?? 0);
@@ -707,7 +714,7 @@ export default function UserManagementPage() {
 
   const saCount = users.filter((u) => u.role === "superadmin").length;
   const adminCount = users.filter((u) => u.role === "admin").length;
-  const userCount = users.filter((u) => u.role === "user").length;
+  const studentCount = users.filter((u) => u.role === "student").length;
   const blockedCount = users.filter((u) => u.isBlocked).length;
 
   // Theme colors
@@ -720,14 +727,36 @@ export default function UserManagementPage() {
   const theadBg = dark ? "#1a2234" : "#f8fafc";
   const filterBg = dark ? "#161f2e" : "#fafafa";
 
+  // Role badge — returns display config per role
   const roleBadge = (u) => {
     if (u.role === "superadmin")
-      return { bg: dark ? "#1e3a5f" : "#dbeafe", color: dark ? "#93c5fd" : "#1d4ed8", label: "Superadmin", icon: <IconShield /> };
+      return {
+        bg: dark ? "#1e3a5f" : "#dbeafe",
+        color: dark ? "#93c5fd" : "#1d4ed8",
+        label: "Superadmin",
+        icon: <IconShield />,
+      };
     if (u.role === "admin")
-      return { bg: dark ? "#2d1f07" : "#fffbeb", color: dark ? "#fcd34d" : "#b45309", label: "Admin", icon: <IconUser /> };
+      return {
+        bg: dark ? "#2d1f07" : "#fffbeb",
+        color: dark ? "#fcd34d" : "#b45309",
+        label: "Admin",
+        icon: <IconUser />,
+      };
     if (u.isBlocked)
-      return { bg: dark ? "#3b0f14" : "#fff1f2", color: dark ? "#fca5a5" : "#be123c", label: "Blocked", icon: <IconBan /> };
-    return { bg: dark ? "#1f2937" : "#f3f4f6", color: dark ? "#6b7280" : "#6b7280", label: "Student", icon: <IconUsers /> };
+      return {
+        bg: dark ? "#3b0f14" : "#fff1f2",
+        color: dark ? "#fca5a5" : "#be123c",
+        label: "Blocked",
+        icon: <IconBan />,
+      };
+    // Default: student
+    return {
+      bg: dark ? "#1f2937" : "#f3f4f6",
+      color: dark ? "#6b7280" : "#6b7280",
+      label: "Student",
+      icon: <IconUsers />,
+    };
   };
 
   if (authLoading)
@@ -752,7 +781,15 @@ export default function UserManagementPage() {
 
   if (loading)
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", background: bg }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+          background: bg,
+        }}
+      >
         <div style={{ textAlign: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
           <div
             style={{
@@ -821,51 +858,25 @@ export default function UserManagementPage() {
           background-repeat: no-repeat;
           background-position: right 8px center;
         }
-          .um-spinner-small {
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            display: inline-block;
-            animation: um-spin 0.7s linear infinite;
-            }
-
-        /* Responsive styles for mobile (max-width: 640px) */
+        .um-spinner-small {
+          width: 14px;
+          height: 14px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: #fff;
+          border-radius: 50%;
+          display: inline-block;
+          animation: um-spin 0.7s linear infinite;
+        }
         @media (max-width: 640px) {
-          .um-stats-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 10px !important;
-          }
-          .um-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-          }
-          .um-header-actions {
-            width: 100% !important;
-            justify-content: flex-start !important;
-          }
-          .um-toolbar {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .um-search {
-            width: 100% !important;
-          }
-          .um-sort {
-            justify-content: space-between !important;
-            width: 100% !important;
-          }
-          .um-action-icon {
-            width: 28px !important;
-            height: 28px !important;
-          }
-          .um-stat-card {
-            padding: 10px 12px !important;
-          }
-          .um-stat-value {
-            font-size: 18px !important;
-          }
+          .um-stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .um-header { flex-direction: column !important; align-items: flex-start !important; }
+          .um-header-actions { width: 100% !important; justify-content: flex-start !important; }
+          .um-toolbar { flex-direction: column !important; align-items: stretch !important; }
+          .um-search { width: 100% !important; }
+          .um-sort { justify-content: space-between !important; width: 100% !important; }
+          .um-action-icon { width: 28px !important; height: 28px !important; }
+          .um-stat-card { padding: 10px 12px !important; }
+          .um-stat-value { font-size: 18px !important; }
         }
       `}</style>
 
@@ -877,7 +888,14 @@ export default function UserManagementPage() {
             bottom: 24,
             right: 24,
             zIndex: 9999,
-            background: toastType === "error" ? "#dc2626" : toastType === "warn" ? "#f59e0b" : dark ? "#1e293b" : "#111827",
+            background:
+              toastType === "error"
+                ? "#dc2626"
+                : toastType === "warn"
+                ? "#f59e0b"
+                : dark
+                ? "#1e293b"
+                : "#111827",
             color: "#fff",
             fontSize: 13,
             fontWeight: 500,
@@ -922,9 +940,13 @@ export default function UserManagementPage() {
           >
             {isSA ? "Superadmin Portal" : "Admin Portal"}
           </p>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: text, margin: 0, letterSpacing: "-0.02em" }}>User Management</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: text, margin: 0, letterSpacing: "-0.02em" }}>
+            User Management
+          </h1>
           <p style={{ fontSize: 13, color: textMuted, margin: "5px 0 0" }}>
-            {isSA ? "Full access — manage roles, block, and unblock users." : "You can block or unblock regular students."}
+            {isSA
+              ? "Full access — manage roles, block, and unblock users."
+              : "You can block or unblock regular students."}
           </p>
         </div>
         <div className="um-header-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -981,18 +1003,37 @@ export default function UserManagementPage() {
       {/* Stat Cards */}
       <div
         className="um-anim um-d1 um-stats-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: 12,
-          marginBottom: 22,
-        }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}
       >
         {[
-          { label: "Total Users", value: users.length, icon: <IconUsers />, iconBg: dark ? "#1e3a5f" : "#eff6ff", color: "#1d4ed8" },
-          { label: "Superadmins", value: saCount, icon: <IconShield />, iconBg: dark ? "#1e1040" : "#f5f3ff", color: "#7c3aed" },
-          { label: "Admins", value: adminCount, icon: <IconUser />, iconBg: dark ? "#2d1f07" : "#fffbeb", color: "#d97706" },
-          { label: "Blocked", value: blockedCount, icon: <IconBan />, iconBg: dark ? "#3b0f14" : "#fff1f2", color: "#dc2626" },
+          {
+            label: "Total Users",
+            value: users.length,
+            icon: <IconUsers />,
+            iconBg: dark ? "#1e3a5f" : "#eff6ff",
+            color: "#1d4ed8",
+          },
+          {
+            label: "Superadmins",
+            value: saCount,
+            icon: <IconShield />,
+            iconBg: dark ? "#1e1040" : "#f5f3ff",
+            color: "#7c3aed",
+          },
+          {
+            label: "Admins",
+            value: adminCount,
+            icon: <IconUser />,
+            iconBg: dark ? "#2d1f07" : "#fffbeb",
+            color: "#d97706",
+          },
+          {
+            label: "Blocked",
+            value: blockedCount,
+            icon: <IconBan />,
+            iconBg: dark ? "#3b0f14" : "#fff1f2",
+            color: "#dc2626",
+          },
         ].map((s) => (
           <div
             key={s.label}
@@ -1023,10 +1064,15 @@ export default function UserManagementPage() {
               {s.icon}
             </div>
             <div>
-              <p className="um-stat-value" style={{ margin: 0, fontSize: 22, fontWeight: 700, color: text, lineHeight: 1 }}>
+              <p
+                className="um-stat-value"
+                style={{ margin: 0, fontSize: 22, fontWeight: 700, color: text, lineHeight: 1 }}
+              >
                 {s.value}
               </p>
-              <p style={{ margin: "3px 0 0", fontSize: 11, color: textMuted, fontWeight: 500 }}>{s.label}</p>
+              <p style={{ margin: "3px 0 0", fontSize: 11, color: textMuted, fontWeight: 500 }}>
+                {s.label}
+              </p>
             </div>
           </div>
         ))}
@@ -1035,12 +1081,7 @@ export default function UserManagementPage() {
       {/* Table Card */}
       <div
         className="um-anim um-d2"
-        style={{
-          background: cardBg,
-          border: `1px solid ${border}`,
-          borderRadius: 14,
-          overflow: "hidden",
-        }}
+        style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 14, overflow: "hidden" }}
       >
         {/* Toolbar */}
         <div
@@ -1089,7 +1130,14 @@ export default function UserManagementPage() {
             {search && (
               <button
                 onClick={() => setSearch("")}
-                style={{ background: "none", border: "none", cursor: "pointer", color: textMuted, padding: 0, display: "flex" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: textMuted,
+                  padding: 0,
+                  display: "flex",
+                }}
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -1102,7 +1150,7 @@ export default function UserManagementPage() {
               <option value="all">All Roles</option>
               <option value="superadmin">Superadmins</option>
               <option value="admin">Admins</option>
-              <option value="user">Students</option>
+              <option value="student">Students</option>
               <option value="blocked">Blocked</option>
             </select>
             <select className="um-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
@@ -1302,12 +1350,16 @@ export default function UserManagementPage() {
                         <span style={{ fontSize: 12.5, color: textMuted }}>{timeAgo(u.lastLogin)}</span>
                       </td>
 
-                      {/* Actions (icon-only) */}
+                      {/* Actions */}
                       <td style={{ padding: "14px 16px", verticalAlign: "middle" }}>
                         {isMe ? (
-                          <span style={{ fontSize: 11.5, color: dark ? "#475569" : "#d1d5db", fontStyle: "italic" }}>(you)</span>
+                          <span style={{ fontSize: 11.5, color: dark ? "#475569" : "#d1d5db", fontStyle: "italic" }}>
+                            (you)
+                          </span>
                         ) : isTargetSA ? (
-                          <span style={{ fontSize: 11.5, color: dark ? "#475569" : "#d1d5db", fontStyle: "italic" }}>Protected</span>
+                          <span style={{ fontSize: 11.5, color: dark ? "#475569" : "#d1d5db", fontStyle: "italic" }}>
+                            Protected
+                          </span>
                         ) : (
                           <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
                             {actions.canPromote && (
@@ -1315,7 +1367,7 @@ export default function UserManagementPage() {
                                 className="um-action-icon"
                                 onClick={() => openConfirm(u, "promote")}
                                 title="Promote to Admin"
-                                style={{color: "#b45309" }}
+                                style={{ color: "#b45309" }}
                               >
                                 <IconUser />
                               </button>
@@ -1324,7 +1376,7 @@ export default function UserManagementPage() {
                               <button
                                 className="um-action-icon"
                                 onClick={() => openConfirm(u, "demote")}
-                                title="Revert to Admin"
+                                title="Revert to Student"
                                 style={{ color: "#b45309" }}
                               >
                                 <IconUser />
@@ -1362,13 +1414,7 @@ export default function UserManagementPage() {
         )}
 
         {filtered.length > 0 && (
-          <div
-            style={{
-              padding: "10px 16px",
-              borderTop: `1px solid ${border}`,
-              background: filterBg,
-            }}
-          >
+          <div style={{ padding: "10px 16px", borderTop: `1px solid ${border}`, background: filterBg }}>
             <p style={{ margin: 0, fontSize: 11, color: textMuted }}>
               Showing {filtered.length} of {users.length} registered user{users.length !== 1 ? "s" : ""}
             </p>
