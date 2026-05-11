@@ -1,3 +1,4 @@
+// Author: Angela Militar | feat/roadmap-page
 // src/pages/RoadmapPage.jsx
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
