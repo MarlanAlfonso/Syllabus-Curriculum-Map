@@ -42,7 +42,11 @@ and gaps across the curriculum.
 | Version Control | Git + GitHub |
 
 ---
+## Screenshots
 
+![Course List](docs/screenshots/screenshot-course-list.png)
+![Curriculum Map](docs/screenshots/screenshot-curriculum-map.png)
+---
 ## Team
 | Name | Role |
 |---|---|
@@ -104,10 +108,3 @@ and gaps across the curriculum.
 Workflow: feature branch → PR → dev → release PR → main
 All PRs require at least 1 reviewer approval before merging.
 🔒 Never push directly to main or dev.
-
----
-
-## Screenshots
-
-![Course List](docs/screenshots/screenshot-course-list.png)
-![Curriculum Map](docs/screenshots/screenshot-curriculum-map.png)
